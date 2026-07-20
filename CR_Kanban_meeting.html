@@ -1,0 +1,2491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SST GT — CR Kanban Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://unpkg.com/xlsx-js-style@1.2.0/dist/xlsx-js-style.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --navy:#1B2B52;
+  --blue:#1D6FA4;
+  --red:#C41230;
+  --amber:#B45309;
+  --green:#2D8653;
+  --teal:#1F7A6E;
+  --teal-lt:#D0E8E2;
+  --g59:#4B5563;
+  --g7F:#6B7280;
+  --bg:#EEF2F7;
+  --div:#D1D9E6;
+  --mdb:#1D6FA4;
+  --fi:#5B21B6;
+  --co:#0369A1;
+  --pp:#92400E;
+  --mm:#065F46;
+  --if:#881337;
+  --sd:#312E81;
+}
+body{font-family:'Inter','Segoe UI',sans-serif;background:#F0F4FA;color:#1F2937;min-width:960px;}
+#upload-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:40px;}
+#drop-zone{border:3px dashed var(--blue);border-radius:14px;padding:50px 70px;text-align:center;cursor:pointer;background:white;transition:.2s;max-width:460px;width:100%;}
+#drop-zone:hover,#drop-zone.dragover{background:#e8f0fb;border-color:var(--navy);}
+#drop-zone .dz-icon{font-size:48px;margin-bottom:12px;}
+#drop-zone h2{color:var(--navy);font-size:21px;margin-bottom:6px;}
+#drop-zone p{color:var(--g7F);font-size:13px;}
+#drop-zone input{display:none;}
+.btn-primary{background:var(--blue);color:white;border:none;border-radius:7px;padding:11px 26px;font-size:14px;font-family:inherit;cursor:pointer;font-weight:700;margin-top:16px;}
+.btn-primary:hover{background:var(--navy);}
+#app-screen{display:none;}
+#app-header{background:var(--navy);color:white;padding:11px 22px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;box-shadow:0 2px 8px rgba(0,0,0,.25);}
+#app-header h1{font-size:16px;font-weight:700;}
+.hdr-sub{font-size:11px;color:#aac4e0;margin-bottom:2px;}
+.hdr-btns{display:flex;gap:7px;}
+.btn-h{background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:5px;padding:5px 13px;font-size:12px;font-family:inherit;cursor:pointer;font-weight:600;transition:.15s;}
+.btn-h:hover{background:rgba(255,255,255,.28);}
+.btn-h.teal{background:rgba(31,122,110,.55);border-color:rgba(80,210,190,.4);}
+.btn-h.red{background:rgba(192,0,0,.35);border-color:rgba(255,80,80,.4);}
+.save-status{font-size:11px;color:rgba(255,255,255,.55);font-weight:500;transition:color .25s;padding:0 2px;}
+.save-status.saving{color:#fcd34d;}
+.save-status.saved{color:#6ee7b7;}
+.save-status.error{color:#fca5a5;}
+#app-nav{display:flex;background:white;border-bottom:2px solid var(--div);padding:0 18px;position:sticky;top:47px;z-index:190;}
+.nav-btn{background:none;border:none;border-bottom:3px solid transparent;margin-bottom:-2px;padding:10px 18px;font-size:13px;font-family:inherit;cursor:pointer;color:var(--g59);font-weight:500;transition:.15s;display:flex;align-items:center;gap:6px;}
+.nav-btn:hover{color:var(--navy);}
+.nav-btn.active{color:var(--navy);border-bottom-color:var(--blue);font-weight:600;}
+
+#search-box{display:flex;align-items:center;gap:5px;margin-left:auto;}
+#search-input{border:1px solid var(--div);border-radius:5px;padding:4px 9px;font-size:12px;font-family:inherit;outline:none;width:190px;color:var(--text);transition:.15s;}
+#search-input:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(37,99,235,.15);}
+#search-clear{background:none;border:none;cursor:pointer;font-size:14px;color:#aaa;padding:0 2px;line-height:1;display:none;}
+#search-clear:hover{color:var(--red);}
+#toolbar{display:flex;align-items:center;gap:6px;padding:7px 18px;background:white;border-bottom:1px solid var(--div);flex-wrap:wrap;row-gap:5px;}
+.btn-t{background:var(--bg);border:1px solid var(--div);border-radius:5px;padding:4px 11px;font-size:11px;font-family:inherit;cursor:pointer;color:var(--navy);font-weight:600;transition:.15s;}
+.btn-t:hover{background:#ddeaf9;border-color:var(--blue);color:var(--blue);}
+.t-sep{width:1px;height:18px;background:var(--div);margin:0 2px;}
+.t-label{font-size:11px;color:var(--g7F);font-weight:500;flex-shrink:0;}
+.mod-chip{border-radius:20px;padding:3px 10px;font-size:10.5px;font-weight:700;color:white;cursor:pointer;border:none;opacity:.4;transition:opacity .15s,transform .1s;font-family:inherit;}
+.mod-chip:hover{opacity:.7;}
+.mod-chip.active{opacity:1;transform:scale(1.06);}
+.mod-chip-all{background:#555;}
+#stats-bar{display:flex;align-items:center;gap:10px;padding:7px 18px;background:#fff;border-bottom:1px solid var(--div);font-size:11px;}
+.stat-item{display:flex;align-items:center;gap:5px;color:var(--g59);}
+.stat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.stat-num{font-weight:700;color:#333;}
+.stat-sep{width:1px;height:14px;background:var(--div);margin:0 2px;}
+#kanban-view{padding:13px 15px;overflow-x:auto;}
+.board{display:flex;flex-direction:column;gap:10px;}
+.board-row{display:flex;gap:9px;align-items:flex-start;}
+.board-section-label{display:flex;align-items:center;gap:10px;padding:2px 0;}
+.bsl-line{flex:1;height:1px;background:var(--div);}
+.bsl-text{font-size:10px;font-weight:600;color:var(--g7F);white-space:nowrap;text-transform:uppercase;letter-spacing:.06em;}
+#secondary-row > div{flex:1;}
+.kanban-col{border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.09);flex:1;display:flex;flex-direction:column;}
+.col-hdr{display:flex;align-items:center;justify-content:space-between;padding:9px 11px;color:white;font-weight:700;font-size:11.5px;letter-spacing:.2px;flex-shrink:0;}
+.col-hdr-left{display:flex;align-items:center;gap:6px;}
+.col-icon{font-size:14px;opacity:.9;}
+.col-cnt{background:rgba(255,255,255,.9);border-radius:50%;width:23px;height:23px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;}
+.c-PENDING_APPROVAL .col-hdr{background:var(--amber);}    .c-PENDING_APPROVAL .col-cnt{color:var(--amber);}
+.c-APPROVED         .col-hdr{background:#0F766E;}        .c-APPROVED         .col-cnt{color:#0F766E;}
+.c-IN_PROGRESS      .col-hdr{background:var(--blue);}    .c-IN_PROGRESS      .col-cnt{color:var(--blue);}
+.c-COMPLETED        .col-hdr{background:var(--green);}   .c-COMPLETED        .col-cnt{color:var(--green);}
+.c-REJECTED         .col-hdr{background:var(--red);}     .c-REJECTED         .col-cnt{color:var(--red);}
+.c-PREV             .col-hdr{background:var(--teal);}    .c-PREV             .col-cnt{color:var(--teal);}
+.col-body{background:var(--bg);padding:6px;display:flex;flex-direction:column;gap:5px;min-height:80px;overflow-y:auto;max-height:calc(100vh - 240px);transition:background .18s,box-shadow .18s;}
+.col-body.drag-over{background:#e4f0fb;box-shadow:inset 0 0 0 2px var(--blue);}
+.prev-body{background:#f0f8f6;max-height:calc(100vh - 240px);}
+.prev-body.drag-over{background:#e2f0ed;box-shadow:inset 0 0 0 2px var(--teal);}
+.empty-col{color:var(--g7F);font-size:11px;text-align:center;padding:20px 5px;font-style:italic;opacity:.7;}
+@keyframes cardLand{
+  0%  {box-shadow:0 0 0 2.5px var(--blue),0 8px 22px rgba(29,111,164,.22);transform:translateY(-4px) scale(1.015);}
+  55% {box-shadow:0 0 0 1.5px rgba(29,111,164,.25),0 6px 14px rgba(0,0,0,.1);transform:translateY(-1px) scale(1.005);}
+  100%{box-shadow:0 1px 4px rgba(0,0,0,.06);transform:none;}
+}
+.card{background:white;border-radius:8px;display:flex;flex-direction:column;border:1px solid #e4e6ea;box-shadow:0 1px 4px rgba(0,0,0,.06);transition:box-shadow .18s,opacity .15s,transform .18s;cursor:grab;position:relative;}
+.card:hover{box-shadow:0 6px 18px rgba(0,0,0,.11);transform:translateY(-2px);}
+.card.dragging{opacity:.35;transform:scale(.97);cursor:grabbing;transition:none;}
+.card.just-dropped{animation:cardLand .55s cubic-bezier(.2,.8,.3,1) forwards;}
+.card-top-bar{height:4px;border-radius:8px 8px 0 0;flex-shrink:0;}
+.card-inner{flex:1;min-width:0;}
+.card-tint-pa{background:#FFFBF0!important;}
+.card-tint-na{background:#FFF5F6!important;}
+.card-tint-ap{background:#F0FDF8!important;}
+.card-tint-ip{background:#EFF6FF!important;}
+.card-tint-co{background:#F0FDF6!important;}
+.card-tint-pv{background:#F0FAF8!important;}
+.card-hdr{display:flex;align-items:flex-start;justify-content:space-between;padding:7px 8px 3px;gap:4px;}
+.card-hdr-txt{flex:1;min-width:0;}
+.card-cr-tag{display:inline-block;background:var(--bg);border:1px solid var(--div);border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;color:var(--navy);line-height:1.6;}
+.card-tag-row{display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-bottom:3px;}
+.card-issue-tag{display:inline-block;background:#F0FAF8;border:1px solid #6EE7B7;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:600;color:#0F766E;line-height:1.6;}
+.card-ref-text{font-size:10px;color:var(--g7F);font-weight:500;white-space:nowrap;overflow:hidden;max-width:110px;text-overflow:ellipsis;}
+.card-desc{font-size:11px;font-weight:600;color:var(--navy);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.card-grip{position:absolute;left:6px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--div);opacity:0;transition:opacity .15s;pointer-events:none;line-height:1;}
+.card:hover .card-grip{opacity:.6;}
+.card-tog{flex-shrink:0;width:16px;height:16px;border-radius:3px;background:rgba(0,0,0,.04);border:1px solid var(--div);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:8px;color:var(--g7F);transition:background .15s,transform .22s;user-select:none;margin-top:1px;}
+.card-tog:hover{background:#ddeaf9;color:var(--blue);}
+.card.collapsed .card-tog{transform:rotate(-90deg);}
+.card-detail{padding:0 8px 6px;max-height:300px;opacity:1;transition:max-height .22s ease,opacity .18s ease,padding .18s ease;overflow:hidden;}
+.card.collapsed .card-detail{max-height:0;opacity:0;padding-top:0;padding-bottom:0;}
+.card-note-wrap{position:relative;margin-bottom:4px;}
+.card-note{font-size:10.5px;color:var(--g7F);font-style:italic;line-height:1.4;min-height:14px;border-radius:3px;padding:2px 20px 2px 3px;cursor:text;outline:none;white-space:pre-wrap;word-break:break-word;}
+.card-note:hover:not([contenteditable="true"]){background:#f4f4f4;}
+.card-note[contenteditable="true"]{background:#fffde7;border:1px solid #f0c040;font-style:normal;color:#222;padding-right:3px;}
+.note-pencil{position:absolute;right:3px;top:3px;font-size:9px;opacity:0;transition:opacity .15s;pointer-events:none;color:var(--g7F);}
+.card-note-wrap:hover .note-pencil{opacity:.55;}
+.card-note-wrap:has([contenteditable="true"]) .note-pencil{opacity:0;}
+.card-div{border:none;border-top:1px solid #eee;margin:3px 0;}
+.card-badges{display:flex;justify-content:space-between;align-items:center;gap:3px;}
+.badge{border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;color:white;white-space:nowrap;display:inline-block;}
+.badge.click{cursor:pointer;}
+.badge.click:hover{opacity:.82;box-shadow:0 0 0 2px rgba(0,0,0,.18);}
+.mod-FI{background:var(--fi)!important;}.mod-CO{background:var(--co)!important;}
+.mod-PP{background:var(--pp)!important;}.mod-MM{background:var(--mm)!important;}
+.mod-IF{background:var(--if)!important;}.mod-SD{background:var(--teal)!important;}
+.mod-X{background:#808080!important;}
+.bdg-edit{display:flex;align-items:center;gap:2px;background:#fffde7;border:1px solid #f0c040;border-radius:5px;padding:2px 4px;}
+.bdg-in{border:none;background:transparent;font-size:11px;font-family:inherit;outline:none;padding:0 1px;color:#333;min-width:0;}
+.bdg-save{background:var(--blue);color:white;border:none;border-radius:3px;font-size:10px;cursor:pointer;padding:1px 5px;font-family:inherit;}
+.bdg-sel{font-size:11px;font-family:inherit;border:1px solid var(--blue);border-radius:4px;padding:1px 2px;outline:none;cursor:pointer;background:white;}
+.prev-card{cursor:grab;}
+.prev-card:hover{box-shadow:0 6px 18px rgba(0,0,0,.11)!important;transform:translateY(-2px)!important;}
+.prev-rep{font-size:10px;color:var(--teal);font-weight:700;margin-bottom:2px;}
+#toast-el{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(14px);background:#1e293b;color:white;padding:9px 18px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .25s,transform .25s;z-index:9999;white-space:nowrap;pointer-events:none;border-left:3px solid transparent;}
+#analysis-section{display:none;padding:20px;max-width:1050px;margin:0 auto;}
+.an-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;}
+.kpi-card{background:white;border-radius:10px;padding:16px 18px;box-shadow:0 1px 4px rgba(0,0,0,.07);border:1px solid #e8e8e8;}
+.kpi-label{font-size:11px;color:var(--g7F);font-weight:500;margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em;}
+.kpi-val{font-size:26px;font-weight:700;color:var(--navy);}
+.kpi-sub{font-size:11px;color:var(--g7F);margin-top:3px;}
+.an-card{background:white;border-radius:10px;padding:20px 22px;box-shadow:0 1px 4px rgba(0,0,0,.07);border:1px solid #e8e8e8;margin-bottom:16px;}
+.an-card-title{font-size:14px;font-weight:700;color:var(--navy);margin-bottom:4px;}
+.an-card-sub{font-size:11px;color:var(--g7F);margin-bottom:16px;}
+.an-chart-wrap{position:relative;height:300px;}
+.an-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:4px;}
+.an-table th{padding:8px 12px;text-align:left;font-weight:600;color:var(--g59);border-bottom:2px solid var(--div);font-size:11px;text-transform:uppercase;letter-spacing:.04em;}
+.an-table td{padding:9px 12px;border-bottom:1px solid #f0f0f0;color:#333;}
+.an-table tr:last-child td{border-bottom:none;}
+.an-table tr:hover td{background:#f9f9f9;}
+.an-badge{display:inline-block;border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700;color:white;}
+.an-more{text-align:center;padding:24px;color:var(--g7F);font-size:12px;border:1.5px dashed #ddd;border-radius:10px;font-style:italic;}
+.phase-legend{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+.phase-chip{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:#444;}
+.phase-legend-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+.chart-toggle{display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--div);border-radius:20px;padding:4px 12px;font-size:11px;font-family:inherit;cursor:pointer;font-weight:600;background:var(--bg);color:var(--g59);transition:.15s;}
+.chart-toggle:hover{border-color:var(--blue);color:var(--blue);background:#ddeaf9;}
+.chart-toggle.active{background:#ffeaea;border-color:var(--red);color:var(--red);}
+.chart-toggle .tog-dot{width:8px;height:8px;border-radius:50%;background:currentColor;flex-shrink:0;}
+.drop-indicator{height:0;margin:0;pointer-events:none;flex-shrink:0;}
+.add-card-btn{display:flex;align-items:center;justify-content:center;gap:5px;padding:7px 10px;background:transparent;border:1.5px dashed var(--div);border-radius:6px;color:var(--g7F);font-size:11px;font-weight:600;cursor:pointer;transition:.15s;width:100%;font-family:inherit;margin-top:4px;}
+.add-card-btn:hover{background:rgba(29,111,164,.06);border-color:var(--blue);color:var(--blue);}
+.add-card-form{background:white;border:1.5px solid var(--blue);border-radius:8px;padding:10px;box-shadow:0 4px 14px rgba(0,0,0,.13);display:flex;flex-direction:column;gap:6px;margin-top:4px;}
+.acf-label{font-size:10px;font-weight:600;color:var(--g59);text-transform:uppercase;letter-spacing:.04em;margin-bottom:1px;}
+.acf-input{border:1px solid var(--div);border-radius:5px;padding:5px 8px;font-size:11px;font-family:inherit;outline:none;width:100%;transition:border-color .15s;color:#1F2937;background:white;}
+.acf-input:focus{border-color:var(--blue);}
+.acf-input.error{border-color:var(--red)!important;}
+.acf-row{display:flex;gap:5px;}
+.acf-actions{display:flex;gap:5px;justify-content:flex-end;margin-top:2px;}
+.acf-btn{padding:4px 11px;border-radius:4px;font-size:11px;font-family:inherit;cursor:pointer;font-weight:600;border:1px solid var(--div);transition:.12s;}
+.acf-btn.primary{background:var(--blue);color:white;border-color:var(--blue);}
+.acf-btn.primary:hover{background:var(--navy);}
+.acf-btn.cancel{background:var(--bg);color:var(--g59);}
+.acf-btn.cancel:hover{background:#dde;}
+.card-del{flex-shrink:0;width:16px;height:16px;border-radius:3px;background:transparent;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:10px;color:var(--g7F);opacity:0;transition:opacity .15s,color .12s,background .12s;font-family:inherit;padding:0;line-height:1;margin-top:1px;}
+.card:hover .card-del{opacity:1;}
+.card-del:hover{color:var(--red)!important;background:rgba(196,18,48,.1);}
+.modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:9500;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px);}
+.modal-box{background:white;border-radius:14px;padding:26px 28px 22px;max-width:380px;width:90%;box-shadow:0 12px 40px rgba(0,0,0,.22),0 2px 8px rgba(0,0,0,.1);animation:modalIn .18s ease;}
+@keyframes modalIn{from{opacity:0;transform:scale(.95) translateY(6px)}to{opacity:1;transform:none}}
+.modal-icon{font-size:28px;margin-bottom:10px;}
+.modal-title{font-size:15px;font-weight:700;color:var(--navy);margin-bottom:8px;}
+.modal-body{font-size:12.5px;color:var(--g59);line-height:1.55;}
+.modal-cr{font-weight:700;color:var(--navy);}
+.modal-warn{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--red);font-weight:600;margin-top:12px;padding:7px 10px;background:#fff5f6;border:1px solid #fecdce;border-radius:6px;}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;}
+.modal-btn{padding:8px 18px;border-radius:7px;font-size:12.5px;font-family:inherit;cursor:pointer;font-weight:600;border:1px solid var(--div);transition:.12s;}
+.modal-btn.cancel{background:var(--bg);color:var(--g59);}
+.modal-btn.cancel:hover{background:#e2e8f0;border-color:#aab;}
+.modal-btn.danger{background:var(--red);color:white;border-color:var(--red);}
+.modal-btn.danger:hover{background:#a00f27;border-color:#a00f27;}
+.modal-btn.primary{background:var(--blue);color:white;border-color:var(--blue);}
+.modal-btn.primary:hover{background:var(--navy);border-color:var(--navy);}
+@media print{
+  @page{size:A3 landscape;margin:10mm;}
+  body{background:white!important;min-width:0;font-size:11px;}
+
+  /* Hide all chrome */
+  #app-header,#toolbar,#stats-bar,#upload-screen,#analysis-section,
+  .hdr-btns,#btn-download,.btn-h,
+  .card-grip,.card-actions,.card-top-bar,
+  .add-card-btn,.add-card-form,
+  .card-note-wrap .note-pencil,
+  .card-hdr .card-cr-tag + *,
+  button{display:none!important;}
+
+  /* Show print title */
+  #app-screen::before{
+    content:"SST GT Implementation — CR Kanban Board";
+    display:block;font-size:15px;font-weight:700;color:#1B2B52;
+    text-align:center;padding:0 0 6px;border-bottom:2px solid #1B2B52;margin-bottom:8px;
+  }
+
+  /* Layout */
+  #app-screen,#kanban-view{display:block!important;}
+  .board{display:flex!important;flex-wrap:nowrap;gap:6px;align-items:flex-start;}
+  #main-row{display:flex!important;flex-wrap:nowrap;gap:6px;}
+  #secondary-row{display:flex!important;flex-wrap:nowrap;gap:6px;margin-top:6px;}
+  #prev-area{margin-top:6px;}
+
+  /* Columns */
+  .kanban-col{flex:1;min-width:0;box-shadow:none!important;border:1px solid #ccc!important;border-radius:6px!important;}
+  .col-hdr{padding:6px 8px!important;print-color-adjust:exact;-webkit-print-color-adjust:exact;}
+  .col-hdr-left{gap:4px!important;}
+  .col-body{max-height:none!important;overflow:visible!important;padding:4px!important;}
+
+  /* Cards */
+  .card{break-inside:avoid;margin-bottom:4px!important;box-shadow:none!important;
+        border:1px solid #e0e0e0!important;border-radius:5px!important;
+        transform:none!important;}
+  .card-inner{padding:5px 7px!important;}
+  .card-cr-tag{font-size:9px!important;padding:1px 5px!important;}
+  .card-desc{font-size:10px!important;-webkit-line-clamp:unset!important;overflow:visible!important;}
+  .card-note-wrap{display:none!important;}
+  .card-badges{margin-top:3px!important;}
+  .badge{font-size:9px!important;padding:1px 5px!important;}
+  .phase-track{font-size:8px!important;}
+
+  /* Force expand collapsed cards */
+  .card.collapsed .card-detail{max-height:400px!important;opacity:1!important;padding:0 7px 5px!important;}
+
+  /* Prevent hover effects */
+  .card:hover{transform:none!important;box-shadow:none!important;}
+}
+
+.detail-overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9600;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px);}
+.detail-box{background:white;border-radius:14px;width:580px;max-width:94vw;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.25);animation:modalIn .18s ease;overflow:hidden;}
+.detail-sbar{height:5px;flex-shrink:0;}
+.detail-head{padding:16px 20px 12px;border-bottom:1px solid var(--div);display:flex;align-items:flex-start;gap:10px;}
+.detail-cr-tag{font-size:10px;font-weight:700;color:var(--navy);background:var(--bg);border:1px solid var(--div);border-radius:4px;padding:2px 8px;display:inline-block;margin-bottom:5px;}
+.detail-cr-edit{font-family:inherit;width:100px;cursor:text;outline:none;transition:.15s;}
+.detail-cr-edit:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(37,99,235,.15);}
+.detail-desc-edit{font-size:15px;font-weight:700;color:var(--navy);line-height:1.35;outline:none;width:100%;border:none;background:transparent;font-family:inherit;cursor:text;}
+.detail-desc-edit:focus{background:#fffde7;border-radius:4px;padding:2px 4px;margin:-2px -4px;}
+.detail-body{padding:16px 20px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:14px;}
+.detail-row{display:flex;gap:10px;flex-wrap:wrap;}
+.detail-field{display:flex;flex-direction:column;gap:4px;flex:1;min-width:90px;}
+.detail-lbl{font-size:10px;font-weight:700;color:var(--g7F);text-transform:uppercase;letter-spacing:.05em;}
+.detail-in{border:1px solid var(--div);border-radius:6px;padding:6px 9px;font-size:12px;font-family:inherit;outline:none;color:#1F2937;background:white;width:100%;transition:border-color .15s;}
+.detail-in:focus{border-color:var(--blue);}
+.detail-sel{border:1px solid var(--div);border-radius:6px;padding:6px 9px;font-size:12px;font-family:inherit;outline:none;color:#1F2937;background:white;width:100%;cursor:pointer;}
+.detail-ta{min-height:72px;resize:vertical;line-height:1.5;}
+.detail-link-row{display:flex;gap:6px;align-items:center;}
+.detail-open-btn{background:var(--blue);color:white;border:none;border-radius:5px;padding:5px 11px;font-size:11px;font-family:inherit;cursor:pointer;font-weight:600;white-space:nowrap;flex-shrink:0;}
+.detail-open-btn:hover{background:var(--navy);}
+.detail-open-btn:disabled{background:var(--g7F);cursor:default;}
+.detail-foot{padding:12px 20px;border-top:1px solid var(--div);display:flex;justify-content:space-between;align-items:center;}
+.card-link{flex-shrink:0;width:16px;height:16px;border-radius:3px;background:transparent;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:10px;color:var(--g7F);opacity:0;transition:opacity .15s,color .12s,background .12s;font-family:inherit;padding:0;line-height:1;margin-top:1px;}
+.card:hover .card-link{opacity:.7;}
+.card-link.has-url{color:var(--blue);}
+.card:hover .card-link.has-url{opacity:1;}
+.card-link:hover{color:var(--blue)!important;background:rgba(29,111,164,.1);}
+.card-creator{font-size:9.5px;color:var(--g7F);padding:0 8px 1px;opacity:.8;display:flex;gap:0;flex-wrap:wrap;align-items:center;}
+.card-pic{font-size:9.5px;color:var(--navy);font-weight:700;padding-left:8px;border-left:1px solid #D1D9E6;margin-left:4px;}
+.card-hdr-txt{cursor:pointer;}
+.card-hdr-txt:hover .card-desc{color:var(--blue);}
+
+.phase-track{display:flex;align-items:center;gap:1px;flex:1;justify-content:center;padding:0 3px;overflow:hidden;min-width:0;}
+.phase-dot{font-size:10px;font-weight:700;letter-spacing:.2px;cursor:default;flex-shrink:0;line-height:1;}
+.phase-dot.done{color:var(--green);}
+.phase-dot.overdue{color:#B45309;}
+.phase-dot.planned{color:var(--blue);}
+.phase-dot.idle{color:#C4C9D4;}
+.phase-arrow{color:#D1D9E6;font-size:10px;flex-shrink:0;line-height:1;margin:0 1px;}
+
+.phase-table{width:100%;border-collapse:collapse;margin-top:4px;}
+.phase-table th,.phase-table td{padding:4px 8px;font-size:12px;text-align:left;border:1px solid var(--div);}
+.phase-table th{background:#F1F5F9;font-weight:600;color:var(--g4F);}
+.phase-table td:first-child{font-weight:700;color:var(--navy);width:46px;}
+.phase-table input{width:100%;border:none;background:transparent;font-size:12px;outline:none;font-family:inherit;padding:2px 0;}
+.phase-table input:focus{background:#FFFDE7;border-radius:3px;padding:2px 4px;margin:-2px -4px;}
+.phase-section-lbl{font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.6px;padding:6px 0 2px;}
+#phase-section.collapsed .phase-table{display:none;}
+#phase-section.collapsed .phase-section-lbl{color:#C4C9D4;}
+#phase-section.collapsed .phase-section-lbl span{display:none;}
+#phase-section.collapsed .phase-section-lbl::after{content:' — only available for IN PROGRESS';font-size:9px;font-weight:400;letter-spacing:0;text-transform:none;color:#C4C9D4;}
+.tl-input-row{display:flex;gap:6px;align-items:flex-start;margin-bottom:8px;}
+.tl-input-row input[type=date]{flex:0 0 130px;border:1px solid var(--div);border-radius:5px;padding:5px 7px;font-size:11px;font-family:inherit;color:var(--navy);}
+.tl-input-row textarea{flex:1;border:1px solid var(--div);border-radius:5px;padding:5px 7px;font-size:11px;font-family:inherit;resize:none;min-height:38px;line-height:1.4;}
+.tl-add-btn{flex:0 0 auto;background:var(--teal);color:white;border:none;border-radius:5px;padding:6px 11px;font-size:11px;font-family:inherit;font-weight:700;cursor:pointer;white-space:nowrap;}
+.tl-add-btn:hover{background:var(--navy);}
+.tl-empty{color:#bbb;font-size:11px;font-style:italic;padding:4px 0;}
+.tl-entry{display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-bottom:1px solid #f0f0f0;}
+.tl-entry:last-child{border-bottom:none;}
+.tl-date-badge{flex:0 0 auto;background:var(--teal);color:white;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700;margin-top:1px;white-space:nowrap;}
+.tl-comment{flex:1;font-size:11px;color:var(--navy);line-height:1.45;white-space:pre-wrap;word-break:break-word;}
+.tl-del{flex:0 0 auto;background:none;border:none;color:#ccc;font-size:15px;cursor:pointer;line-height:1;padding:0 2px;}
+.tl-del:hover{color:var(--red);}
+.tl-list{max-height:180px;overflow-y:auto;}
+/* ── Update-since-baseline badges ────────────────────────────────────── */
+.upd-badge{display:inline-flex;align-items:center;gap:2px;border-radius:20px;
+  padding:2px 7px 2px 5px;font-size:10px;font-weight:700;cursor:pointer;
+  border:1px solid transparent;font-family:inherit;position:relative;
+  white-space:nowrap;line-height:1.5;flex-shrink:0;user-select:none;}
+.upd-badge:hover{filter:brightness(.92);}
+.upd-new   {background:#D1FAE5;color:#065F46;border-color:#6EE7B7;}
+.upd-status{background:#FEF3C7;color:#92400E;border-color:#FCD34D;}
+.upd-detail{background:#DBEAFE;color:#1E40AF;border-color:#93C5FD;}
+.upd-tooltip{display:none;position:absolute;right:0;top:calc(100% + 5px);
+  background:#1e293b;color:white;border-radius:8px;padding:8px 11px;
+  font-size:10.5px;font-weight:400;min-width:195px;max-width:270px;
+  z-index:600;box-shadow:0 6px 20px rgba(0,0,0,.28);line-height:1.6;
+  pointer-events:none;text-align:left;}
+.upd-tooltip::before{content:'';position:absolute;right:10px;top:-4px;
+  border-left:5px solid transparent;border-right:5px solid transparent;
+  border-bottom:5px solid #1e293b;}
+.upd-badge:hover .upd-tooltip{display:block;}
+.upd-chg{display:block;padding:1.5px 0;border-bottom:1px solid rgba(255,255,255,.1);}
+.upd-chg:last-child{border-bottom:none;}
+.upd-dismiss{background:none;border:none;cursor:pointer;font-size:9px;
+  color:currentColor;opacity:.5;padding:0 0 0 3px;line-height:1;
+  font-family:inherit;flex-shrink:0;}
+.upd-dismiss:hover{opacity:1;}
+.btn-t.upd-on{background:#FEF3C7;border-color:#FCD34D;color:#92400E;}
+.baseline-info{font-size:11px;color:rgba(255,255,255,.6);font-weight:500;
+  display:flex;align-items:center;gap:4px;flex-shrink:0;}
+.binfo-date{color:rgba(255,255,255,.9);font-weight:600;}
+.binfo-count-upd{color:#FCD34D;font-weight:700;}
+
+/* ── High-MD card highlight ────────────────────────────────────────── */
+.card.card-high-md { border-left: 3px solid #F59E0B !important; }
+.card.card-high-md .card-top-bar { height: 6px; }
+/* ── Clickable stat items ──────────────────────────────────────────── */
+.stat-item.s-clickable { cursor:pointer; border-radius:6px; padding:3px 7px; margin:-3px -7px; transition:background .12s; }
+.stat-item.s-clickable:hover { background:rgba(255,255,255,.14); }
+.stat-item.s-clickable.s-active { background:rgba(255,255,255,.22); outline:2px solid rgba(255,255,255,.45); outline-offset:1px; }
+/* ── Disabled modal btn (Prev/Next nav) ────────────────────────────── */
+.modal-btn:disabled { opacity:.38; cursor:default; }
+.modal-btn.cancel:disabled:hover { background:var(--bg)!important; border-color:var(--div)!important; color:var(--g59)!important; }
+/* ── Column sort button ────────────────────────────────────────────── */
+.col-sort-btn { background:none; border:none; font-size:10px; color:rgba(255,255,255,.6); cursor:pointer; padding:2px 5px; border-radius:4px; font-family:inherit; transition:.12s; margin-left:4px; line-height:1; flex-shrink:0; }
+.col-sort-btn:hover { background:rgba(255,255,255,.18); color:white; }
+.col-sort-btn.sort-on { background:rgba(255,255,255,.28); color:white; font-weight:700; }
+/* ── Download button dim state ─────────────────────────────────────── */
+#btn-download.btn-clean { opacity:0.45; }
+#btn-download.btn-clean:hover { opacity:0.65; }
+</style>
+</head>
+<body>
+
+<!-- UPLOAD -->
+<div id="upload-screen">
+  <div style="text-align:center">
+    <div style="font-size:25px;font-weight:700;color:var(--navy)">SST GT — CR Kanban Board</div>
+    <div style="color:var(--g7F);margin-top:4px;font-size:13px">SEKISUI × ABeam Consulting</div>
+  </div>
+  <div id="drop-zone">
+    <div class="dz-icon">📊</div>
+    <h2>Open your Excel file</h2>
+    <p>Changes auto-save back to the same file — or drag &amp; drop</p>
+    <button class="btn-primary" onclick="event.stopPropagation();openExcelFile()">Open Excel File</button>
+    <input type="file" id="fi" accept=".xlsx,.xls" style="display:none">
+    <p style="margin-top:12px;font-size:10.5px;color:#aaa">Needs sheet: "Active CRs" — use status "PREV COMPLETED" for archived CRs</p>
+  </div>
+  <div id="upload-err" style="color:var(--red);font-size:13px;display:none"></div>
+</div>
+
+<!-- APP -->
+<div id="app-screen">
+  <!-- Header -->
+  <div id="app-header">
+    <div>
+      <div class="hdr-sub">3. Change management — SST GT Implementation (SEKISUI × ABeam Consulting)</div>
+      <h1>Change Request Kanban Board</h1>
+    </div>
+    <div class="hdr-btns">
+      <span id="save-status" class="save-status"></span>
+      <button id="btn-download" class="btn-h teal btn-clean" onclick="downloadExcel()" title="Download Excel (no unsaved changes)">💾 Download Excel</button>
+      <button class="btn-h" onclick="window.print()">🖨 Print / PDF</button>
+      <button class="btn-h red" onclick="resetApp()">↩ Load New File</button>
+    </div>
+  </div>
+
+  <!-- Nav Tabs -->
+  <div id="app-nav">
+    <button class="nav-btn active" id="nav-kanban"   onclick="switchView('kanban')">📋 Kanban Board</button>
+    <button class="nav-btn"        id="nav-analysis" onclick="switchView('analysis')">📊 Analysis</button>
+    <button class="nav-btn"        id="nav-report"   onclick="switchView('report')">📋 Report</button>
+  </div>
+
+  <!-- Toolbar (Kanban only) -->
+  <div id="toolbar">
+    <button class="btn-t" id="toggle-all-btn" onclick="toggleAll()">⊟ Collapse All</button>
+    <div class="t-sep"></div>
+    <span class="t-label">Module:</span>
+    <button class="mod-chip mod-chip-all active" id="fchip-ALL" onclick="setFilter('ALL')">All</button>
+    <button class="mod-chip mod-FI" id="fchip-FI" onclick="setFilter('FI')">FI</button>
+    <button class="mod-chip mod-CO" id="fchip-CO" onclick="setFilter('CO')">CO</button>
+    <button class="mod-chip mod-PP" id="fchip-PP" onclick="setFilter('PP')">PP</button>
+    <button class="mod-chip mod-MM" id="fchip-MM" onclick="setFilter('MM')">MM</button>
+    <button class="mod-chip mod-IF" id="fchip-IF" onclick="setFilter('IF')">IF</button>
+    <button class="mod-chip mod-SD" id="fchip-SD" onclick="setFilter('SD')">SD</button>
+    <div id="search-box">
+      <span style="font-size:13px;color:#888">🔍</span>
+      <input id="search-input" type="text" placeholder="Search CR # or keyword…" oninput="onSearchInput()" onkeydown="if(event.key==='Escape')clearSearch()">
+      <button id="search-clear" title="Clear search" onclick="clearSearch()">✕</button>
+    </div>
+    <div class="t-sep"></div>
+    <span class="t-label">Meeting:</span>
+    <button class="btn-t" id="btn-save-baseline" onclick="saveBaseline()" title="Snapshot current board into Excel _Baseline sheet — download Excel to share with team">&#x1F4CC; Save Baseline</button>
+    <button class="btn-t" id="btn-mark-all" onclick="markAllDiscussed()" title="Clear all update flags and update baseline in Excel" style="display:none">&#x2713; Mark All Discussed</button>
+    <button class="btn-t" id="btn-filter-upd" onclick="toggleUpdatedFilter()" title="Show only CRs that changed since baseline" style="display:none">&#x26A1; Updated Only</button>
+  </div>
+
+  <!-- Stats Bar (Kanban only) -->
+  <div id="stats-bar">
+    <div class="stat-item"><span class="stat-dot" style="background:#555"></span><span>Total Active</span><span class="stat-num" id="stat-total">–</span></div>
+    <div class="stat-sep"></div>
+    <div class="stat-item s-clickable" id="sitem-PA" onclick="setStatusFilter('PENDING APPROVAL')" title="Click to filter board"><span class="stat-dot" style="background:var(--amber)"></span><span>Pending Approval</span><span class="stat-num" id="stat-PA">–</span></div>
+    <div class="stat-item s-clickable" id="sitem-AP" onclick="setStatusFilter('APPROVED')" title="Click to filter board"><span class="stat-dot" style="background:#0F766E"></span><span>Approved</span><span class="stat-num" id="stat-AP">–</span></div>
+    <div class="stat-item s-clickable" id="sitem-IP" onclick="setStatusFilter('IN PROGRESS')" title="Click to filter board"><span class="stat-dot" style="background:var(--blue)"></span><span>In Progress</span><span class="stat-num" id="stat-IP">–</span></div>
+    <div class="stat-item s-clickable" id="sitem-CO" onclick="setStatusFilter('COMPLETED')" title="Click to filter board"><span class="stat-dot" style="background:var(--green)"></span><span>Completed (incl. Prev)</span><span class="stat-num" id="stat-CO">–</span></div>
+    <div class="stat-sep"></div>
+    <div class="stat-item s-clickable" id="sitem-NA" onclick="setStatusFilter('REJECTED')" title="Click to filter board"><span class="stat-dot" style="background:var(--red)"></span><span>Rejected</span><span class="stat-num" id="stat-NA">–</span></div>
+      <div class="stat-sep" id="baseline-sep" style="display:none"></div>
+    <div class="baseline-info" id="baseline-info" style="display:none">&#x1F4CC; Baseline: <span class="binfo-date" id="baseline-date">–</span>&ensp;&middot;&ensp;<span id="baseline-upd-count">–</span></div>
+  </div>
+
+  <!-- Kanban View -->
+  <div id="kanban-view">
+    <div class="board">
+      <div class="board-row" id="main-row"></div>
+      <div class="board-section-label">
+        <div class="bsl-line"></div>
+        <span class="bsl-text">Additional Status</span>
+        <div class="bsl-line"></div>
+      </div>
+      <div class="board-row" id="secondary-row">
+        <div id="na-col-wrap"></div>
+        <div id="prev-area"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Analysis View -->
+  <div id="analysis-section">
+    <!-- KPI Row -->
+    <div class="an-row">
+      <div class="kpi-card">
+        <div class="kpi-label">Active CRs</div>
+        <div class="kpi-val" id="kpi-total">–</div>
+        <div class="kpi-sub">across all statuses</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Total MD Budget</div>
+        <div class="kpi-val" id="kpi-md">–</div>
+        <div class="kpi-sub">man-days committed</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">In Progress</div>
+        <div class="kpi-val" id="kpi-ip">–</div>
+        <div class="kpi-sub" id="kpi-ip-pct">–</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Completed (incl. Prev)</div>
+        <div class="kpi-val" id="kpi-done">–</div>
+        <div class="kpi-sub" id="kpi-done-pct">–</div>
+      </div>
+    </div>
+
+    <!-- Project Threshold Chart (MD Month → Phase) -->
+    <div class="an-card">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:4px;">
+        <div>
+          <div class="an-card-title">Project Threshold — CRs by Phase</div>
+          <div class="an-card-sub" style="margin-bottom:0">Number of change requests assigned to each project phase (by MD Month)</div>
+        </div>
+        <button class="chart-toggle" id="na-toggle-btn" onclick="toggleNotApproved()" title="Toggle Pending/Rejected CRs">
+          <span class="tog-dot"></span><span id="na-toggle-label">Incl. Pending/Rejected</span>
+        </button>
+      </div>
+      <div class="phase-legend" id="phase-legend" style="margin-top:14px;"></div>
+      <div class="an-chart-wrap">
+        <canvas id="threshold-chart"></canvas>
+      </div>
+    </div>
+
+    <!-- MD per Module -->
+    <div class="an-card">
+      <div class="an-card-title">MD Budget by Module</div>
+      <div class="an-card-sub">Total man-days committed per module across active CRs</div>
+      <div class="an-chart-wrap">
+        <canvas id="md-chart"></canvas>
+      </div>
+    </div>
+
+    <!-- Module Summary Table -->
+    <div class="an-card">
+      <div class="an-card-title">Module Summary</div>
+      <div class="an-card-sub">Breakdown of CRs and MD budget per module</div>
+      <table class="an-table">
+        <thead>
+          <tr>
+            <th>Module</th>
+            <th>CR Count</th>
+            <th>Total MD</th>
+            <th>Avg MD / CR</th>
+            <th>MD Share</th>
+          </tr>
+        </thead>
+        <tbody id="analysis-tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="an-more">📈 More analysis coming soon — status breakdown, trend over time, completion rate</div>
+  </div>
+</div>
+  <!-- Report View -->
+  <div id="report-section" style="display:none;padding:16px 22px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+      <div>
+        <div style="font-size:15px;font-weight:700;color:#1B2B52;">Weekly Status Report</div>
+        <div style="font-size:11px;color:#6B7280;margin-top:2px;">Full board snapshot — copy and paste directly into PowerPoint</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span id="report-copy-hint" style="font-size:11px;color:#2D8653;font-weight:600;display:none;">&#x2713; Copied!</span>
+        <button class="btn-h teal" onclick="copyReportTable()" style="font-size:12px;padding:7px 16px;">&#x1F4CB; Copy for PowerPoint</button>
+        <button class="btn-h" onclick="window.print()">&#x1F5A8; Print</button>
+      </div>
+    </div>
+    <div id="report-table-wrap" style="overflow-x:auto;"></div>
+  </div>
+
+<!-- Delete Confirmation Modal -->
+<div id="confirm-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeConfirmModal()">
+  <div class="modal-box">
+    <div class="modal-icon">🗑</div>
+    <div class="modal-title">Delete Change Request</div>
+    <div class="modal-body" id="modal-body-text"></div>
+    <div class="modal-warn">⚠ This action cannot be undone.</div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="closeConfirmModal()">Cancel</button>
+      <button class="modal-btn danger" id="modal-confirm-btn" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+
+<div id="detail-modal" class="detail-overlay" style="display:none" onclick="if(event.target===this)closeDetail()">
+  <div class="detail-box">
+    <div class="detail-sbar" id="detail-sbar"></div>
+    <div class="detail-head">
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;flex-wrap:wrap;">
+          <div style="display:inline-flex;align-items:center;border:1px solid var(--div);border-radius:5px;overflow:hidden;">
+            <span style="padding:4px 7px;background:var(--bg);font-size:10px;font-weight:700;color:var(--navy);border-right:1px solid var(--div);flex-shrink:0;">CR-</span>
+            <input id="detail-cr-num" class="detail-cr-tag detail-cr-edit" type="text" inputmode="numeric" placeholder="104" spellcheck="false" style="width:52px;border:none;border-radius:0;padding:4px 6px;box-sizing:border-box;">
+          </div>
+          <div style="display:inline-flex;align-items:center;border:1px solid var(--div);border-radius:5px;overflow:hidden;">
+            <span style="padding:4px 7px;background:var(--bg);font-size:10px;color:var(--g7F);border-right:1px solid var(--div);flex-shrink:0;">Issue-</span>
+            <input id="detail-issue" class="detail-cr-tag detail-cr-edit" type="text" inputmode="numeric" placeholder="123" spellcheck="false" style="width:52px;border:none;border-radius:0;padding:4px 6px;box-sizing:border-box;">
+          </div>
+          <input id="detail-ref" class="detail-cr-tag detail-cr-edit" type="text" placeholder="Reference (optional)" spellcheck="false" style="flex:1;min-width:120px;border-radius:5px;">
+        </div>
+        <input id="detail-desc" class="detail-desc-edit" type="text" placeholder="Description">
+      </div>
+      <button class="modal-btn cancel" style="flex-shrink:0;margin-left:10px;margin-top:2px" onclick="closeDetail()">✕ Close</button>
+    </div>
+    <div class="detail-body">
+      <div class="detail-row">
+        <div class="detail-field" style="flex:2">
+          <div class="detail-lbl">Status</div>
+          <select id="detail-status" class="detail-sel"></select>
+        </div>
+        <div class="detail-field" style="flex:1">
+          <div class="detail-lbl">Module</div>
+          <select id="detail-mod" class="detail-sel"></select>
+        </div>
+        <div class="detail-field" style="flex:0 0 72px">
+          <div class="detail-lbl">MD</div>
+          <input id="detail-md" class="detail-in" type="text" placeholder="e.g. 3">
+        </div>
+        <div class="detail-field" style="flex:0 0 68px">
+          <div class="detail-lbl">Month</div>
+          <input id="detail-mon" class="detail-in" type="text" placeholder="MAY">
+        </div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-field">
+          <div class="detail-lbl">Creator (Client)</div>
+          <input id="detail-creator" class="detail-in" type="text" placeholder="Name">
+        </div>
+        <div class="detail-field">
+          <div class="detail-lbl">ABeam PIC</div>
+          <input id="detail-pic" class="detail-in" type="text" placeholder="Name">
+        </div>
+      </div>
+      <div class="detail-field">
+        <div class="detail-lbl">Link / URL</div>
+        <div class="detail-link-row">
+          <input id="detail-url" class="detail-in" type="text" placeholder="https://...">
+          <button id="detail-open-btn" class="detail-open-btn" onclick="openDetailLink()" disabled>Open ↗</button>
+        </div>
+      </div>
+      <div class="detail-field" id="phase-section">
+        <div class="phase-section-lbl">⬡ In-Progress Phase Tracking <span style="font-size:10px;font-weight:400;color:#999">(calendar date picker)</span></div>
+        <table class="phase-table">
+          <thead><tr><th>Phase</th><th>Planned</th><th>Actual</th></tr></thead>
+          <tbody>
+            <tr><td>DS</td><td><input type="date" id="dp-dsP"></td><td><input type="date" id="dp-dsA"></td></tr>
+            <tr><td>DEV</td><td><input type="date" id="dp-devP"></td><td><input type="date" id="dp-devA"></td></tr>
+            <tr><td>UT</td><td><input type="date" id="dp-utP"></td><td><input type="date" id="dp-utA"></td></tr>
+            <tr><td>UAT</td><td><input type="date" id="dp-uatP"></td><td><input type="date" id="dp-uatA"></td></tr>
+            <tr><td>GO</td><td><input type="date" id="dp-goP"></td><td><input type="date" id="dp-goA"></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="detail-field">
+        <div class="detail-lbl">Notes / Remarks</div>
+        <textarea id="detail-note" class="detail-in detail-ta"></textarea>
+      </div>
+      <div class="detail-field">
+        <div class="phase-section-lbl">📅 Progress Timeline</div>
+        <div class="tl-input-row">
+          <input type="date" id="tl-date" title="Entry date">
+          <textarea id="tl-comment" placeholder="Enter progress update or milestone note…" rows="2"></textarea>
+          <button class="tl-add-btn" onclick="addTimelineEntry()">+ Add</button>
+        </div>
+        <div id="tl-list" class="tl-list"></div>
+      </div>
+    </div>
+    <div class="detail-foot">
+      <button class="modal-btn danger" onclick="deleteFromDetail()">🗑 Delete CR</button>
+      <div style="display:flex;align-items:center;gap:5px">
+        <button class="modal-btn cancel" id="detail-prev-btn" onclick="navigateDetail(-1)" title="Go to previous card">‹ Prev</button>
+        <span id="detail-nav-pos" style="font-size:10px;color:#9CA3AF;min-width:36px;text-align:center;"></span>
+        <button class="modal-btn cancel" id="detail-next-btn" onclick="navigateDetail(1)" title="Go to next card">Next ›</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span id="detail-err" style="font-size:11px;color:#B45309;font-weight:600;display:none;"></span>
+        <button class="modal-btn primary" onclick="applyDetail()">✔ Apply</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="toast-el"></div>
+
+<script>
+const state = { active: [], prev: [], baseline: null };
+const STATUS_ORD  = ['PENDING APPROVAL','APPROVED','IN PROGRESS','COMPLETED','REJECTED'];
+const MAIN_STATUS = ['PENDING APPROVAL','APPROVED','IN PROGRESS','COMPLETED'];
+const MODS        = ['FI','CO','PP','MM','IF','SD'];
+const ACCENT      = { 'PENDING APPROVAL':'#B45309','APPROVED':'#0F766E','IN PROGRESS':'#1D6FA4','COMPLETED':'#2D8653','REJECTED':'#C41230' };
+const MOD_COLOR   = { FI:'#5B21B6', CO:'#0369A1', PP:'#92400E', MM:'#065F46', IF:'#881337', SD:'#312E81' };
+const STATUS_ICON = { 'PENDING APPROVAL':'◷','APPROVED':'✓','IN PROGRESS':'↻','COMPLETED':'★','REJECTED':'✕' };
+const TINT_CLS    = { 'PENDING APPROVAL':'card-tint-pa','APPROVED':'card-tint-ap','IN PROGRESS':'card-tint-ip','COMPLETED':'card-tint-co','REJECTED':'card-tint-na' };
+
+const PHASES = [
+  { key:'ds',  label:'DS',  full:'Design Spec' },
+  { key:'dev', label:'DEV', full:'Config / Dev' },
+  { key:'ut',  label:'UT',  full:'Unit Test' },
+  { key:'uat', label:'UAT', full:'UAT' },
+  { key:'go',  label:'GO',  full:'Deployment' },
+];
+
+
+const PHASE_MAP = {
+  APR:'IIT', APRIL:'IIT',
+  MAY:'EIT',
+  JUN:'ST',  JUNE:'ST',
+  JUL:'UAT', JULY:'UAT',
+  AUG:'Cutover', AUGUST:'Cutover'
+};
+const PHASE_ORDER  = ['IIT','EIT','ST','UAT','Cutover'];
+const PHASE_COLORS = { IIT:'#1D6FA4', EIT:'#0F766E', ST:'#2D8653', UAT:'#B45309', Cutover:'#C41230' };
+const PHASE_LABEL  = { IIT:'Apr - IIT', EIT:'May - EIT', ST:'Jun - ST', UAT:'Jul - UAT', Cutover:'Aug - Cutover' };
+
+let activeFilter      = 'ALL';
+let allCollapsed      = false;
+let isDirty           = false;
+let lastDropped       = null;
+let mdChart           = null;
+let thresholdChart    = null;
+let excludeNotApproved = true; // default: exclude Pending/Rejected from phase chart
+let savedFileHandle   = null;
+let _lastFileName     = null;
+let _autoSaveTimer    = null;
+
+const el = (tag, cls) => { const e = document.createElement(tag); if (cls) e.className = cls; return e; };
+const setText = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
+
+const dropIndicatorEl = (() => {
+  const d = document.createElement('div');
+  d.className = 'drop-indicator';
+  d.setAttribute('aria-hidden', 'true');
+  return d;
+})();
+
+function showDropIndicator(refEl, before) {
+  if (!refEl || refEl === dropIndicatorEl) return;
+  const parent = refEl.parentNode;
+  if (!parent) return;
+  if (before) {
+    parent.insertBefore(dropIndicatorEl, refEl);
+  } else {
+    const next = refEl.nextSibling;
+    if (next && next !== dropIndicatorEl) parent.insertBefore(dropIndicatorEl, next);
+    else if (!next) parent.appendChild(dropIndicatorEl);
+  }
+}
+
+function removeDropIndicator() {
+  if (dropIndicatorEl.parentNode) dropIndicatorEl.parentNode.removeChild(dropIndicatorEl);
+}
+
+function getInsertBeforeCr(body) {
+  let foundIndicator = false;
+  for (const child of body.children) {
+    if (child === dropIndicatorEl) { foundIndicator = true; continue; }
+    if (foundIndicator && child.classList.contains('card') && child.dataset.cr) {
+      return child.dataset.cr;
+    }
+  }
+  return null;
+}
+
+function insertActiveCard(newCard, insertBeforeCr) {
+  if (!insertBeforeCr) { state.active.push(newCard); return; }
+  const idx = state.active.findIndex(c => c.cr === insertBeforeCr);
+  if (idx >= 0) state.active.splice(idx, 0, newCard);
+  else state.active.push(newCard);
+}
+
+function reorderActiveCard(cr, insertBeforeCr) {
+  const idx = state.active.findIndex(c => c.cr === cr);
+  if (idx < 0) return;
+  const [card] = state.active.splice(idx, 1);
+  if (!insertBeforeCr) { state.active.push(card); return; }
+  const targetIdx = state.active.findIndex(c => c.cr === insertBeforeCr);
+  if (targetIdx >= 0) state.active.splice(targetIdx, 0, card);
+  else state.active.push(card);
+}
+
+const tr = v => String(v ?? '').trim();
+
+function mdLabel(md, mon) {
+  const m = tr(md).toUpperCase();
+  if (!m || m === 'N/A') return 'N/A';
+  if (m === 'AB') return `AB / ${tr(mon) || 'N/A'}`;
+  const n = parseFloat(m);
+  if (!isNaN(n)) return `${n} MD / ${tr(mon) || 'N/A'}`;
+  return 'N/A';
+}
+
+function normalizeStatus(raw) {
+  const u = tr(raw).toUpperCase();
+  if (u === 'NOT APPROVED') return 'PENDING APPROVAL';
+  return STATUS_ORD.find(s => s === u)
+      || STATUS_ORD.find(s => s.split(' ').every(w => u.includes(w)))
+      || STATUS_ORD.find(s => u.split(' ').some(w => s.includes(w)))
+      || 'PENDING APPROVAL';
+}
+function modCls(mod) { return `mod-${MODS.includes(mod) ? mod : 'X'}`; }
+
+function monthToPhase(mon) {
+  return PHASE_MAP[tr(mon).toUpperCase()] || null;
+}
+
+function parseExcel(ab) {
+  const wb = XLSX.read(ab, { type:'array' });
+  state.active.length = 0;
+  state.prev.length = 0;
+  const seen = new Set();
+  const sh1 = wb.Sheets['Active CRs'] || wb.Sheets[wb.SheetNames[0]];
+  XLSX.utils.sheet_to_json(sh1, { header:1, defval:'' }).forEach(r => {
+    const cr = tr(r[0]);
+    if (!cr.startsWith('CR-') || seen.has(cr)) return;
+    seen.add(cr);
+    const rawSt = tr(r[2]).toUpperCase();
+    const base = { cr, desc:tr(r[1]), mod:tr(r[3]).toUpperCase(), md:tr(r[4]), mon:tr(r[5]).toUpperCase(), creator:tr(r[6]), pic:tr(r[7]), url:tr(r[8]), note:tr(r[9]),
+      issue:tr(r[10]), ref:tr(r[11]),
+      dsP:tr(r[12]),dsA:tr(r[13]),devP:tr(r[14]),devA:tr(r[15]),utP:tr(r[16]),utA:tr(r[17]),uatP:tr(r[18]),uatA:tr(r[19]),goP:tr(r[20]),goA:tr(r[21]),
+      log:[] };
+    if (rawSt === 'PREV COMPLETED' || rawSt === 'PREVIOUSLY COMPLETED') {
+      state.prev.push(base);
+    } else {
+      state.active.push({ ...base, status:normalizeStatus(r[2]), _collapsed:false });
+    }
+  });
+  // Read CR Timeline sheet and populate card.log arrays
+  const sh2 = wb.Sheets['CR Timeline'];
+  if (sh2) {
+    XLSX.utils.sheet_to_json(sh2, { header:1, defval:'' }).slice(1).forEach(r => {
+      const cr = tr(r[0]); const date = tr(r[1]); const comment = tr(r[2]);
+      if (!cr.startsWith('CR-') || !date) return;
+      const card = [...state.active, ...state.prev].find(c => c.cr === cr);
+      if (card) card.log.push({ date, comment });
+    });
+  }
+  // Read _Baseline sheet (carries meeting snapshot for change indicators)
+  state.baseline = null;
+  const sh3 = wb.Sheets['_Baseline'];
+  if (sh3) {
+    const blRows = XLSX.utils.sheet_to_json(sh3, { header:1, defval:'' });
+    state.baseline = {};
+    if (blRows[0] && blRows[0][1]) state.baseline._savedAt = String(blRows[0][1]).replace('Saved At: ','').trim();
+    blRows.slice(2).forEach(r => {
+      const cr = tr(r[0]); if (!cr.startsWith('CR-')) return;
+      state.baseline[cr] = {
+        status:tr(r[1]),desc:tr(r[2]),mod:tr(r[3]),md:tr(r[4]),mon:tr(r[5]),note:tr(r[6]),
+        issue:tr(r[7]),ref:tr(r[8]),
+        pic:tr(r[9]),
+        dsP:tr(r[10]),dsA:tr(r[11]),devP:tr(r[12]),devA:tr(r[13]),
+        utP:tr(r[14]),utA:tr(r[15]),uatP:tr(r[16]),uatA:tr(r[17]),goP:tr(r[18]),goA:tr(r[19])
+      };
+    });
+  }
+}
+
+// ─── BASELINE / UPDATE TRACKING (stored in Excel _Baseline sheet) ───────
+const LS_DISMISSED = 'cr_kanban_dismissed_v1'; // per-session dismissals only
+let _updFilterOn = false;
+let _statusFilter = null;
+
+const UPD_SVG = {
+  new:    '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="vertical-align:-2px;margin-right:2px;overflow:visible"><rect x=".7" y="1.5" width="8.6" height="10.5" rx="1.5" stroke="currentColor" stroke-width="1.1" fill="currentColor" fill-opacity=".2"/><line x1="2.3" y1="4.8" x2="7.5" y2="4.8" stroke="currentColor" stroke-width="1" stroke-linecap="round"/><line x1="2.3" y1="6.8" x2="5.5" y2="6.8" stroke="currentColor" stroke-width="1" stroke-linecap="round"/><circle cx="10.5" cy="3" r="2.8" fill="currentColor"/><line x1="10.5" y1="1.4" x2="10.5" y2="4.6" stroke="white" stroke-width="1.4" stroke-linecap="round"/><line x1="8.9" y1="3" x2="12.1" y2="3" stroke="white" stroke-width="1.4" stroke-linecap="round"/></svg>',
+  status: '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="vertical-align:-2px;margin-right:2px;overflow:visible"><rect x=".5" y="2.5" width="7" height="9" rx="1.5" stroke="currentColor" stroke-width="1.1" fill="currentColor" fill-opacity=".2"/><line x1="2" y1="5.3" x2="6" y2="5.3" stroke="currentColor" stroke-width="1" stroke-linecap="round"/><line x1="2" y1="7.3" x2="4.5" y2="7.3" stroke="currentColor" stroke-width="1" stroke-linecap="round"/><path d="M 8.5 9.5 Q 8.8 1.5 11.5 1.5 Q 14.5 1.5 14.8 9.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" fill="none"/><polyline points="13.5,7.8 14.8,9.5 16.1,7.8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>',
+  detail: '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="vertical-align:-2px;margin-right:2px;overflow:visible"><rect x=".5" y="1.5" width="7.5" height="10" rx="1.5" stroke="currentColor" stroke-width="1.1" fill="currentColor" fill-opacity=".2"/><line x1="2" y1="4.8" x2="6.5" y2="4.8" stroke="currentColor" stroke-width="1" stroke-linecap="round"/><line x1="2" y1="6.8" x2="4.8" y2="6.8" stroke="currentColor" stroke-width="1" stroke-linecap="round"/><path d="M 9.2 9.8 L 12 7 L 13.6 8.6 L 10.8 11.4 Z" fill="currentColor" fill-opacity=".28" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/><path d="M 9.2 9.8 L 8.6 11.8 L 10.6 11.2 Z" fill="currentColor"/><line x1="12" y1="7" x2="13.6" y2="8.6" stroke="currentColor" stroke-width=".7" stroke-linecap="round"/></svg>'
+};
+
+function _snapCard(c) {
+  return {
+    status:c.status||'PREV COMPLETED', desc:c.desc||'', mod:c.mod||'',
+    md:c.md||'', mon:c.mon||'', note:c.note||'',
+    issue:c.issue||'', ref:c.ref||'', pic:c.pic||'',
+    dsP:c.dsP||'',dsA:c.dsA||'',devP:c.devP||'',devA:c.devA||'',
+    utP:c.utP||'',utA:c.utA||'',uatP:c.uatP||'',uatA:c.uatA||'',
+    goP:c.goP||'',goA:c.goA||''
+  };
+}
+function saveBaseline() {
+  const snap = { _savedAt: new Date().toISOString() };
+  [...state.active, ...state.prev].forEach(c => { snap[c.cr] = _snapCard(c); });
+  state.baseline = snap;
+  localStorage.removeItem(LS_DISMISSED);
+  markDirty(); // writes _Baseline sheet on next Excel download
+  refreshBaselineUI(); render();
+  toast('📌 Baseline saved — download Excel 💾 to share indicators with your team', '#1F7A6E');
+}
+function markAllDiscussed() {
+  const snap = { _savedAt: new Date().toISOString() };
+  [...state.active, ...state.prev].forEach(c => { snap[c.cr] = _snapCard(c); });
+  state.baseline = snap;
+  localStorage.removeItem(LS_DISMISSED);
+  _updFilterOn = false;
+  const fb = document.getElementById('btn-filter-upd');
+  if (fb) { fb.classList.remove('upd-on'); fb.textContent = '⚡ Updated Only'; }
+  markDirty();
+  refreshBaselineUI(); render();
+  toast('✓ All discussed — download Excel 💾 to share updated baseline', '#2D8653');
+}
+function dismissUpdateBadge(cr) {
+  const d = JSON.parse(localStorage.getItem(LS_DISMISSED) || '[]');
+  if (!d.includes(cr)) d.push(cr);
+  localStorage.setItem(LS_DISMISSED, JSON.stringify(d));
+  refreshBaselineUI(); render();
+}
+function toggleUpdatedFilter() {
+  _updFilterOn = !_updFilterOn;
+  const fb = document.getElementById('btn-filter-upd');
+  if (fb) { fb.classList.toggle('upd-on', _updFilterOn); fb.textContent = _updFilterOn ? '⚡ Show All' : '⚡ Updated Only'; }
+  applyFilter();
+}
+function getUpdateInfo(card) {
+  if (!state.baseline) return null;
+  const dismissed = JSON.parse(localStorage.getItem(LS_DISMISSED) || '[]');
+  if (dismissed.includes(card.cr)) return null;
+  const b = state.baseline[card.cr];
+  if (!b) return { type:'new', changes:['New CR — added since baseline'] };
+  const s = _snapCard(card);
+  const changes = [];
+  if (b.status !== s.status) changes.push('Status: ' + b.status + ' → ' + s.status);
+  if (b.mod    !== s.mod)    changes.push('Module: ' + b.mod    + ' → ' + s.mod);
+  if (b.md !== s.md || b.mon !== s.mon) changes.push('MD: ' + (b.md||'?') + '/' + (b.mon||'?') + ' → ' + (s.md||'?') + '/' + (s.mon||'?'));
+  if (b.note !== s.note)     changes.push('Notes updated');
+  if (b.issue !== s.issue)   changes.push('Issue: ' + (b.issue||'—') + ' → ' + (s.issue||'—'));
+  if (b.ref !== s.ref)       changes.push('Reference updated');
+  if (b.pic !== s.pic)       changes.push('ABeam PIC: ' + (b.pic||'—') + ' → ' + (s.pic||'—'));
+  [['dsP','dsA','DS'],['devP','devA','DEV'],['utP','utA','UT'],['uatP','uatA','UAT'],['goP','goA','GO']].forEach(([p,a,lbl]) => {
+    if (b[a] !== s[a] && s[a]) changes.push(lbl + ' actual: ' + s[a]);
+    else if (b[p] !== s[p])    changes.push(lbl + ' planned date changed');
+  });
+  if (!changes.length) return null;
+  return { type: b.status !== s.status ? 'status' : 'detail', changes };
+}
+function makeUpdateBadge(card, info) {
+  const cls   = info.type === 'new' ? 'upd-new' : info.type === 'status' ? 'upd-status' : 'upd-detail';
+  const label = info.type === 'new' ? 'New' : 'Updated';
+  const wrap  = el('span', 'upd-badge ' + cls);
+  const tip = el('span','upd-tooltip');
+  tip.innerHTML = info.changes.map(c => '<span class="upd-chg">' + c.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</span>').join('');
+  const dBtn = el('button','upd-dismiss');
+  dBtn.title = 'Mark as noted'; dBtn.textContent = '✕';
+  dBtn.addEventListener('click', e => { e.stopPropagation(); dismissUpdateBadge(card.cr); });
+  const iconEl = el('span');
+  iconEl.innerHTML = UPD_SVG[info.type] || UPD_SVG.detail;
+  wrap.appendChild(tip);
+  wrap.appendChild(iconEl);
+  wrap.appendChild(document.createTextNode(label + ' '));
+  wrap.appendChild(dBtn);
+  return wrap;
+}
+function countUpdated() {
+  if (!state.baseline) return 0;
+  const dismissed = JSON.parse(localStorage.getItem(LS_DISMISSED)||'[]');
+  return [...state.active,...state.prev].filter(c => !dismissed.includes(c.cr) && getUpdateInfo(c)).length;
+}
+function refreshBaselineUI() {
+  const baseline = state.baseline;
+  const upd = baseline ? countUpdated() : 0;
+  const hasData = !!(baseline && Object.keys(baseline).some(k => k.startsWith('CR-')));
+  ['btn-mark-all','btn-filter-upd'].forEach(id => {
+    const e = document.getElementById(id); if (e) e.style.display = (hasData && upd > 0) ? '' : 'none';
+  });
+  ['baseline-info','baseline-sep'].forEach(id => {
+    const e = document.getElementById(id); if (e) e.style.display = hasData ? '' : 'none';
+  });
+  const bdEl = document.getElementById('baseline-date');
+  if (bdEl && baseline && baseline._savedAt) {
+    try {
+      const d = new Date(baseline._savedAt);
+      if (!isNaN(d)) bdEl.textContent = d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'}) + ' ' + d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+      else bdEl.textContent = baseline._savedAt;
+    } catch(e){}
+  }
+  const bcEl = document.getElementById('baseline-upd-count');
+  if (bcEl) {
+    if (upd > 0) { bcEl.textContent = upd + ' updated'; bcEl.className = 'binfo-count-upd'; }
+    else         { bcEl.textContent = 'no changes'; bcEl.className = ''; bcEl.style.color='rgba(255,255,255,.55)'; }
+  }
+}
+
+function render() { renderMainCols(); renderNA(); renderPrev(); updateStats(); applyFilter(); refreshBaselineUI(); }
+function showDownloadBtn() {
+  const btn = document.getElementById('btn-download');
+  if (btn) { btn.classList.remove('btn-clean'); btn.title = 'Download Excel (unsaved changes)'; }
+}
+
+function sortedForCol(cards, status) {
+  const mode = colSort[status];
+  if (!mode) return cards;
+  const s = [...cards];
+  if (mode === 'CR#')  s.sort((a,b) => (parseInt((a.cr||'').replace('CR-',''))||0) - (parseInt((b.cr||'').replace('CR-',''))||0));
+  if (mode === 'MD↓')  s.sort((a,b) => (parseFloat(b.md)||0) - (parseFloat(a.md)||0));
+  if (mode === 'MD↑')  s.sort((a,b) => (parseFloat(a.md)||0) - (parseFloat(b.md)||0));
+  return s;
+}
+const COL_SORT_CYCLE = {'CR#':'MD↓','MD↓':'MD↑','MD↑':null};
+function cycleColSort(status, e) {
+  e.stopPropagation();
+  const cur = colSort[status];
+  colSort[status] = cur == null ? 'CR#' : (COL_SORT_CYCLE[cur] ?? null);
+  render();
+}
+
+function makeActiveColumn(status) {
+  const key   = status.replace(/ /g,'_');
+  const col   = el('div', `kanban-col c-${key}`);
+  const cards = sortedForCol(state.active.filter(c => c.status === status), status);
+
+  const hdr  = el('div', 'col-hdr');
+  const left = el('div', 'col-hdr-left');
+  const icon = el('span', 'col-icon'); icon.textContent = STATUS_ICON[status] || '';
+  left.appendChild(icon);
+  left.appendChild(document.createTextNode(status));
+  const cnt = el('span', 'col-cnt'); cnt.id = `cnt-${key}`; cnt.textContent = cards.length;
+  const sortBtn = el('button', 'col-sort-btn' + (colSort[status] ? ' sort-on' : ''));
+  sortBtn.textContent = colSort[status] ? colSort[status] : '⇅';
+  sortBtn.title = colSort[status] ? 'Sorted by ' + colSort[status] + ' — click to cycle' : 'Sort column (CR# → MD↓ → MD↑)';
+  sortBtn.addEventListener('click', e => cycleColSort(status, e));
+  hdr.appendChild(left); hdr.appendChild(cnt); hdr.appendChild(sortBtn);
+  col.appendChild(hdr);
+
+  const body = el('div', 'col-body');
+  body.dataset.status = status;
+
+  if (!cards.length) {
+    const empty = el('div', 'empty-col'); empty.textContent = 'No CRs'; body.appendChild(empty);
+  } else {
+    cards.forEach(c => {
+      const cardEl = makeCard(c);
+      cardEl.addEventListener('dragover', e => {
+        e.preventDefault(); e.stopPropagation();
+        body.classList.add('drag-over');
+        const rect = cardEl.getBoundingClientRect();
+        showDropIndicator(cardEl, e.clientY < rect.top + rect.height / 2);
+      });
+      body.appendChild(cardEl);
+    });
+  }
+
+  const addBtnWrap = makeAddCardBtn(status);
+  body.appendChild(addBtnWrap);
+
+  body.addEventListener('dragover', e => {
+    e.preventDefault();
+    body.classList.add('drag-over');
+    if (e.target === body || (e.target.classList && e.target.classList.contains('empty-col')) ||
+        e.target === addBtnWrap || addBtnWrap.contains(e.target)) {
+      if (dropIndicatorEl.parentNode !== body || dropIndicatorEl.nextSibling !== addBtnWrap) {
+        body.insertBefore(dropIndicatorEl, addBtnWrap);
+      }
+    }
+  });
+  body.addEventListener('dragleave', e => {
+    if (!body.contains(e.relatedTarget)) {
+      body.classList.remove('drag-over');
+      removeDropIndicator();
+    }
+  });
+  body.addEventListener('drop', e => {
+    e.preventDefault();
+    body.classList.remove('drag-over');
+    const data      = e.dataTransfer.getData('text/plain');
+    const beforeCr  = getInsertBeforeCr(body);
+    removeDropIndicator();
+
+    if (data.startsWith('prev:')) {
+      const crId    = data.slice(5);
+      const prevCrd = state.prev.find(c => c.cr === crId);
+      if (prevCrd) {
+        state.prev.splice(state.prev.indexOf(prevCrd), 1);
+        insertActiveCard({ cr:prevCrd.cr, desc:prevCrd.desc, status, mod:prevCrd.mod, md:prevCrd.md, mon:prevCrd.mon, note:prevCrd.note||'', creator:prevCrd.creator||'', pic:prevCrd.pic||'', url:prevCrd.url||'', issue:prevCrd.issue||'', ref:prevCrd.ref||'', _collapsed:false }, beforeCr);
+        markDirty(); lastDropped = crId; render(); lastDropped = null;
+        toast(`${crId} → ${status}`, ACCENT[status]);
+      }
+      return;
+    }
+
+    const card = state.active.find(c => c.cr === data);
+    if (card) {
+      const statusChanged = card.status !== status;
+      card.status = status;
+      reorderActiveCard(card.cr, beforeCr);
+      markDirty(); lastDropped = data; render(); lastDropped = null;
+      if (statusChanged) toast(`${data} → ${status}`, ACCENT[status]);
+    }
+  });
+
+  col.appendChild(body);
+  return col;
+}
+
+function renderMainCols() {
+  const area = document.getElementById('main-row');
+  area.innerHTML = '';
+  MAIN_STATUS.forEach(status => area.appendChild(makeActiveColumn(status)));
+}
+
+function renderNA() {
+  const wrap = document.getElementById('na-col-wrap');
+  wrap.innerHTML = '';
+  wrap.appendChild(makeActiveColumn('REJECTED'));
+}
+
+
+function parsePhaseDate(s) {
+  if (!s) return null;
+  const mon = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+  const m = String(s).trim().match(/^(\d{1,2})\s+([a-z]{3})\s+(\d{2,4})$/i);
+  if (!m) return null;
+  const mo = mon[m[2].toLowerCase()];
+  if (mo === undefined) return null;
+  const yr = m[3].length===2 ? 2000+parseInt(m[3]) : parseInt(m[3]);
+  return new Date(yr, mo, parseInt(m[1]));
+}
+function toInputDate(s) {
+  if (!s) return '';
+  const mo = {JAN:'01',FEB:'02',MAR:'03',APR:'04',MAY:'05',JUN:'06',JUL:'07',AUG:'08',SEP:'09',OCT:'10',NOV:'11',DEC:'12'};
+  const m = String(s).trim().match(/^(\d{1,2})\s+([A-Z]{3})\s+(\d{2,4})$/i);
+  if (!m) return '';
+  const yr = m[3].length===2 ? '20'+m[3] : m[3];
+  return `${yr}-${mo[m[2].toUpperCase()]||'01'}-${m[1].padStart(2,'0')}`;
+}
+function fromInputDate(s) {
+  if (!s) return '';
+  const mn = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  const [yr,mo,dy] = s.split('-');
+  return `${parseInt(dy)} ${mn[parseInt(mo)-1]} ${yr.slice(2)}`;
+}
+
+function makePhaseDot(label, planned, actual) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const pDate = parsePhaseDate(planned);
+  let st = 'idle';
+  if (actual) st = 'done';
+  else if (pDate && pDate < today) st = 'overdue';
+  // NOTE: planned-only (blue) intentionally removed — only lights up if actual filled or overdue
+  const dot = el('span','phase-dot ' + st);
+  dot.textContent = label;
+  dot.title = label + (planned ? '\nPlan: ' + planned : '') + (actual ? '\nActual: ' + actual : '');
+  return dot;
+}
+
+function makePhaseTrack(card) {
+  const track = el('div','phase-track');
+  const phases = [
+    {label:'DS',  p:card.dsP,  a:card.dsA},
+    {label:'DEV', p:card.devP, a:card.devA},
+    {label:'UT',  p:card.utP,  a:card.utA},
+    {label:'UAT', p:card.uatP, a:card.uatA},
+    {label:'GO',  p:card.goP,  a:card.goA},
+  ];
+  phases.forEach((ph, i) => {
+    track.appendChild(makePhaseDot(ph.label, ph.p, ph.a));
+    if (i < phases.length - 1) {
+      const arr = el('span','phase-arrow'); arr.textContent = '›'; track.appendChild(arr);
+    }
+  });
+  return track;
+}
+
+function makeCard(card) {
+  const wrap = el('div', `card ${TINT_CLS[card.status]||''}`);
+  wrap.draggable = true;
+  wrap.dataset.cr = card.cr;
+  if (card._collapsed) wrap.classList.add('collapsed');
+  const _mdn = parseFloat(card.md); if (!isNaN(_mdn) && _mdn >= 10) wrap.classList.add('card-high-md');
+  if (card.cr === lastDropped) wrap.classList.add('just-dropped');
+
+  wrap.addEventListener('dragstart', e => {
+    e.dataTransfer.setData('text/plain', card.cr);
+    e.dataTransfer.effectAllowed = 'move';
+    setTimeout(() => wrap.classList.add('dragging'), 0);
+  });
+  wrap.addEventListener('dragend', () => wrap.classList.remove('dragging'));
+
+  const grip = el('div','card-grip'); grip.innerHTML = '⠿'; grip.setAttribute('aria-hidden','true');
+  wrap.appendChild(grip);
+
+  const bar = el('div','card-top-bar'); bar.style.background = ACCENT[card.status];
+  wrap.appendChild(bar);
+
+  const inner = el('div','card-inner');
+
+  const hdrRow = el('div','card-hdr');
+  const hdrTxt = el('div','card-hdr-txt');
+  const tagRow = el('div','card-tag-row');
+  const crTag  = el('span','card-cr-tag'); crTag.textContent = card.cr;
+  tagRow.appendChild(crTag);
+  if (card.issue) { const iTag=el('span','card-issue-tag'); iTag.textContent='Issue-'+card.issue; tagRow.appendChild(iTag); }
+  if (card.ref)   { const rEl=el('span','card-ref-text'); rEl.textContent=card.ref; rEl.title=card.ref; tagRow.appendChild(rEl); }
+  const descEl = el('div','card-desc');   descEl.textContent = card.desc; descEl.title = card.desc;
+  hdrTxt.appendChild(tagRow); hdrTxt.appendChild(descEl);
+
+  const tog = el('div','card-tog'); tog.innerHTML = '▾'; tog.title = 'Collapse / Expand';
+  tog.addEventListener('click', e => {
+    e.stopPropagation();
+    wrap.classList.toggle('collapsed');
+    card._collapsed = wrap.classList.contains('collapsed');
+  });
+
+  const delBtn = el('button','card-del'); delBtn.innerHTML = '✕'; delBtn.title = 'Delete this CR';
+  delBtn.addEventListener('click', e => { e.stopPropagation(); showDeleteConfirm(card.cr, card.desc); });
+
+  // Creator + ABeam PIC row
+  if (card.creator || card.pic) {
+    const peopleRow = el('div','card-creator');
+    if (card.creator) { const crEl=el('span'); crEl.textContent='👤 '+card.creator; peopleRow.appendChild(crEl); }
+    if (card.pic)     { const pEl=el('span','card-pic'); pEl.textContent='◆ '+card.pic; peopleRow.appendChild(pEl); }
+    hdrTxt.appendChild(peopleRow);
+  }
+  // Click header text → open detail modal
+  hdrTxt.addEventListener('click', e => { e.stopPropagation(); openDetail(card.cr); });
+
+  // Link button
+  const linkBtn = el('button', 'card-link' + (card.url ? ' has-url' : ''));
+  linkBtn.innerHTML = '🔗'; linkBtn.title = card.url ? 'Open: ' + card.url : 'Set link (open detail)';
+  linkBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    if (card.url) window.open(card.url, '_blank', 'noopener');
+    else openDetail(card.cr);
+  });
+
+  const _updInfo = getUpdateInfo(card);
+  wrap.dataset.upd = _updInfo ? '1' : '0';
+  hdrRow.appendChild(hdrTxt);
+  if (_updInfo) hdrRow.appendChild(makeUpdateBadge(card, _updInfo));
+  hdrRow.appendChild(linkBtn); hdrRow.appendChild(delBtn); hdrRow.appendChild(tog);
+  inner.appendChild(hdrRow);
+
+  const detail  = el('div','card-detail');
+  const noteWrp = el('div','card-note-wrap');
+  const noteEl  = el('div','card-note');
+  noteEl.contentEditable = 'false';
+  noteEl.textContent = card.note;
+  noteEl.title = 'Click to edit remark';
+  noteEl.addEventListener('click', e => {
+    e.stopPropagation();
+    if (noteEl.contentEditable === 'true') return;
+    noteEl.contentEditable = 'true'; noteEl.focus();
+    const r = document.createRange(); r.selectNodeContents(noteEl); r.collapse(false);
+    window.getSelection().removeAllRanges(); window.getSelection().addRange(r);
+  });
+  noteEl.addEventListener('blur', () => {
+    noteEl.contentEditable = 'false';
+    const v = noteEl.textContent.trim(); if (v !== card.note) { card.note = v; markDirty(); }
+  });
+  noteEl.addEventListener('keydown', e => { if (e.key==='Enter'&&!e.shiftKey){e.preventDefault();noteEl.blur();} e.stopPropagation(); });
+  const pencil = el('span','note-pencil'); pencil.textContent='✏'; pencil.setAttribute('aria-hidden','true');
+  noteWrp.appendChild(noteEl); noteWrp.appendChild(pencil);
+
+  const divEl  = el('hr','card-div');
+  const bdgRow = el('div','card-badges');
+  bdgRow.appendChild(makeMDBadge(card));
+  if (card.status === 'IN PROGRESS') bdgRow.appendChild(makePhaseTrack(card));
+  bdgRow.appendChild(makeModBadge(card));
+
+  detail.appendChild(noteWrp); detail.appendChild(divEl);
+  detail.appendChild(bdgRow);
+  inner.appendChild(detail);
+  wrap.appendChild(inner);
+  return wrap;
+}
+
+function makeMDBadge(card) {
+  const badge = el('span','badge click'); badge.style.background='var(--mdb)'; badge.title='Click to edit MD / month'; badge.textContent = mdLabel(card.md,card.mon);
+  badge.addEventListener('click', e => {
+    e.stopPropagation();
+    const w = el('div','bdg-edit');
+    const mi = el('input'); mi.className='bdg-in'; mi.type='text'; mi.value=card.md; mi.placeholder='5/N/A/AB'; mi.style.width='58px';
+    const mo = el('input'); mo.className='bdg-in'; mo.type='text'; mo.value=card.mon; mo.placeholder='MAY'; mo.style.width='34px';
+    const sv = el('button','bdg-save'); sv.textContent='✓';
+    function save(){
+      const nd=mi.value.trim()||'N/A', nm=mo.value.trim().toUpperCase()||'N/A';
+      if(nd!==card.md||nm!==card.mon) markDirty();
+      card.md=nd; card.mon=nm; badge.textContent=mdLabel(card.md,card.mon); w.replaceWith(badge);
+    }
+    sv.addEventListener('click', e=>{e.stopPropagation();save();});
+    mi.addEventListener('keydown', e=>{if(e.key==='Enter')mo.focus(); e.stopPropagation();});
+    mo.addEventListener('keydown', e=>{if(e.key==='Enter')save(); e.stopPropagation();});
+    [mi,mo,sv].forEach(x=>x.addEventListener('blur',()=>setTimeout(()=>{if(!w.contains(document.activeElement))save();},160)));
+    w.appendChild(mi); w.appendChild(document.createTextNode(' / ')); w.appendChild(mo); w.appendChild(sv);
+    badge.replaceWith(w); mi.focus(); mi.select();
+  });
+  return badge;
+}
+
+function makeModBadge(card) {
+  const badge = el('span',`badge click ${modCls(card.mod)}`); badge.title='Click to change module'; badge.textContent=card.mod||'?';
+  badge.addEventListener('click', e => {
+    e.stopPropagation();
+    const sel = el('select','bdg-sel');
+    MODS.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;if(m===card.mod)o.selected=true;sel.appendChild(o);});
+    function save(){ if(sel.value!==card.mod)markDirty(); card.mod=sel.value; badge.className=`badge click ${modCls(card.mod)}`; badge.textContent=card.mod; sel.replaceWith(badge); }
+    sel.addEventListener('change',save); sel.addEventListener('blur',save);
+    badge.replaceWith(sel); sel.focus();
+  });
+  return badge;
+}
+
+function makeAddCardBtn(status) {
+  const wrap = document.createElement('div');
+  const btn  = el('button', 'add-card-btn');
+  btn.innerHTML = '＋&nbsp;Add CR';
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    btn.style.display = 'none';
+    const form = makeAddCardForm(status, wrap, btn);
+    wrap.appendChild(form);
+    form.querySelector('.acf-cr').focus();
+  });
+  wrap.appendChild(btn);
+  return wrap;
+}
+
+function makeAddCardForm(status, wrap, btn) {
+  const form = el('div', 'add-card-form');
+
+  // CR-prefix row
+  const crRow = el('div','acf-row'); crRow.style.cssText='align-items:stretch;gap:0;';
+  const crPfx = el('span'); crPfx.textContent='CR-'; crPfx.style.cssText='font-size:11px;font-weight:700;color:var(--navy);padding:5px 5px 5px 8px;background:var(--bg);border:1px solid var(--div);border-right:none;border-radius:5px 0 0 5px;flex-shrink:0;display:flex;align-items:center;';
+  const crIn  = el('input','acf-input acf-cr'); crIn.type='text'; crIn.inputMode='numeric'; crIn.placeholder='Number (e.g. 104)'; crIn.style.cssText='flex:1;border-radius:0 5px 5px 0;';
+  crRow.appendChild(crPfx); crRow.appendChild(crIn);
+
+  const descIn = el('input', 'acf-input'); descIn.type='text'; descIn.placeholder='Description';
+
+  const row = el('div', 'acf-row');
+  const modSel = el('select', 'acf-input'); modSel.style.flex='1';
+  MODS.forEach(m => { const o=document.createElement('option'); o.value=m; o.textContent=m; modSel.appendChild(o); });
+  const mdIn  = el('input', 'acf-input'); mdIn.type='text'; mdIn.placeholder='MD'; mdIn.style.cssText='flex:0 0 52px;';
+  const monIn = el('input', 'acf-input'); monIn.type='text'; monIn.placeholder='Month'; monIn.style.cssText='flex:0 0 62px;';
+  row.appendChild(modSel); row.appendChild(mdIn); row.appendChild(monIn);
+  const creatorIn = el('input','acf-input'); creatorIn.type='text'; creatorIn.placeholder='Creator - Client (optional)';
+  const picIn     = el('input','acf-input'); picIn.type='text'; picIn.placeholder='ABeam PIC (optional)';
+  const urlIn = el('input','acf-input'); urlIn.type='text'; urlIn.placeholder='Link / URL (optional)';
+
+  // Issue # + Reference row
+  const issueRow = el('div','acf-row'); issueRow.style.cssText='align-items:stretch;gap:0;';
+  const issuePfx = el('span'); issuePfx.textContent='Issue-'; issuePfx.style.cssText='font-size:11px;color:var(--g7F);padding:5px 5px 5px 8px;background:var(--bg);border:1px solid var(--div);border-right:none;border-radius:5px 0 0 5px;flex-shrink:0;display:flex;align-items:center;';
+  const issueIn  = el('input','acf-input'); issueIn.type='text'; issueIn.inputMode='numeric'; issueIn.placeholder='# (opt)'; issueIn.style.cssText='flex:0 0 64px;border-left:none;border-radius:0;';
+  const refIn    = el('input','acf-input'); refIn.type='text'; refIn.placeholder='Reference (optional)'; refIn.style.cssText='flex:1;border-left:none;border-radius:0 5px 5px 0;';
+  issueRow.appendChild(issuePfx); issueRow.appendChild(issueIn); issueRow.appendChild(refIn);
+
+  const actions   = el('div', 'acf-actions');
+  const cancelBtn = el('button', 'acf-btn cancel'); cancelBtn.type='button'; cancelBtn.textContent='Cancel';
+  const addBtn2   = el('button', 'acf-btn primary'); addBtn2.type='button'; addBtn2.textContent='Add';
+
+  function doAdd() {
+    const crRaw = crIn.value.trim().replace(/^CR-/i,'').replace(/\D/g,'');
+    const cr    = crRaw ? 'CR-' + crRaw : '';
+    const desc  = descIn.value.trim();
+    if (!cr) { crIn.classList.add('error'); crIn.focus(); return; }
+    if (state.active.find(c=>c.cr===cr) || state.prev.find(c=>c.cr===cr)) {
+      crIn.classList.add('error'); crIn.title='This CR number already exists'; crIn.focus(); return;
+    }
+    const issueRaw = issueIn.value.trim().replace(/^Issue-/i,'').replace(/\D/g,'');
+    state.active.push({ cr, desc:desc||cr, status, mod:modSel.value, md:mdIn.value.trim()||'N/A', mon:monIn.value.trim().toUpperCase()||'N/A', creator:creatorIn.value.trim(), pic:picIn.value.trim(), url:urlIn.value.trim(), note:'', issue:issueRaw, ref:refIn.value.trim(), log:[], _collapsed:false });
+    markDirty(); lastDropped = cr; render(); lastDropped = null;
+    toast(`${cr} added → ${status}`, ACCENT[status]);
+  }
+
+  cancelBtn.addEventListener('click', e => { e.stopPropagation(); form.remove(); btn.style.display=''; });
+  addBtn2.addEventListener('click',   e => { e.stopPropagation(); doAdd(); });
+  crIn.addEventListener('keydown',   e => { if(e.key==='Enter'){e.preventDefault();descIn.focus();} e.stopPropagation(); });
+  descIn.addEventListener('keydown', e => { if(e.key==='Enter'){e.preventDefault();doAdd();}      e.stopPropagation(); });
+  monIn.addEventListener('keydown',  e => { if(e.key==='Enter'){e.preventDefault();doAdd();}      e.stopPropagation(); });
+  [crIn,descIn,mdIn,monIn].forEach(i => i.addEventListener('input', ()=>i.classList.remove('error')));
+  form.addEventListener('dragover', e=>e.stopPropagation());
+
+  actions.appendChild(cancelBtn); actions.appendChild(addBtn2);
+  form.appendChild(crRow); form.appendChild(descIn); form.appendChild(row);
+  form.appendChild(creatorIn); form.appendChild(picIn); form.appendChild(urlIn); form.appendChild(issueRow); form.appendChild(actions);
+  return form;
+}
+
+function renderPrev() {
+  const area = document.getElementById('prev-area');
+  area.innerHTML = '';
+  const col = el('div','kanban-col c-PREV');
+
+  const hdr  = el('div','col-hdr');
+  const left = el('div','col-hdr-left');
+  const icon = el('span','col-icon'); icon.textContent = '⊞';
+  left.appendChild(icon); left.appendChild(document.createTextNode('PREV COMPLETED'));
+  const cnt = el('span','col-cnt'); cnt.textContent = state.prev.length;
+  hdr.appendChild(left); hdr.appendChild(cnt);
+  col.appendChild(hdr);
+
+  const body = el('div','col-body prev-body');
+  body.addEventListener('dragover',  e => { e.preventDefault(); body.classList.add('drag-over'); });
+  body.addEventListener('dragleave', e => { if (!body.contains(e.relatedTarget)) body.classList.remove('drag-over'); });
+  body.addEventListener('drop', e => {
+    e.preventDefault();
+    body.classList.remove('drag-over');
+    const data = e.dataTransfer.getData('text/plain');
+    if (data.startsWith('prev:')) return;
+    const activeCrd = state.active.find(c => c.cr === data);
+    if (activeCrd) {
+      state.active.splice(state.active.indexOf(activeCrd), 1);
+      state.prev.unshift({ cr:activeCrd.cr, desc:activeCrd.desc, mod:activeCrd.mod, md:activeCrd.md, mon:activeCrd.mon, note:activeCrd.note||'', creator:activeCrd.creator||'', pic:activeCrd.pic||'', url:activeCrd.url||'', issue:activeCrd.issue||'', ref:activeCrd.ref||'', dsP:activeCrd.dsP||'', dsA:activeCrd.dsA||'', devP:activeCrd.devP||'', devA:activeCrd.devA||'', utP:activeCrd.utP||'', utA:activeCrd.utA||'', uatP:activeCrd.uatP||'', uatA:activeCrd.uatA||'', goP:activeCrd.goP||'', goA:activeCrd.goA||'', log:activeCrd.log||[] });
+      markDirty(); lastDropped = activeCrd.cr; render(); lastDropped = null;
+      toast(`${activeCrd.cr} → Previously Completed`, '#1F7A6E');
+    }
+  });
+
+  if (!state.prev.length) {
+    const empty = el('div','empty-col'); empty.textContent='No archived CRs'; body.appendChild(empty);
+  } else {
+    state.prev.forEach(c => {
+      const card = el('div','card prev-card card-tint-pv');
+      card.draggable = true;
+      card.dataset.cr = c.cr;
+      card.addEventListener('dragstart', e => {
+        e.dataTransfer.setData('text/plain', 'prev:' + c.cr);
+        e.dataTransfer.effectAllowed = 'move';
+        setTimeout(() => card.classList.add('dragging'), 0);
+      });
+      card.addEventListener('dragend', () => card.classList.remove('dragging'));
+
+      card.addEventListener('click', e => {
+        if (!e.target.closest('button')) openDetail(c.cr);
+      });
+      const grip  = el('div','card-grip'); grip.innerHTML='⠿'; grip.setAttribute('aria-hidden','true');
+      const bar   = el('div','card-top-bar'); bar.style.background='var(--teal)';
+      const inner = el('div','card-inner'); inner.style.padding='6px 8px';
+
+      const repEl = el('div','prev-rep');    repEl.textContent = c.note||'';
+      const tagRowP = el('div','card-tag-row');
+      const crTag = el('span','card-cr-tag'); crTag.textContent = c.cr;
+      tagRowP.appendChild(crTag);
+      if (c.issue) { const iTagP=el('span','card-issue-tag'); iTagP.textContent='Issue-'+c.issue; tagRowP.appendChild(iTagP); }
+      if (c.ref)   { const rElP=el('span','card-ref-text'); rElP.textContent=c.ref; rElP.title=c.ref; tagRowP.appendChild(rElP); }
+      const dEl   = el('div','card-desc');   dEl.textContent = c.desc; dEl.title = c.desc; dEl.style.marginBottom='4px';
+      const divEl = el('hr','card-div');
+      const bdgRow= el('div','card-badges');
+      const mdB   = el('span','badge'); mdB.style.background='var(--mdb)'; mdB.textContent=mdLabel(c.md,c.mon);
+      const moB   = el('span',`badge ${modCls(c.mod)}`); moB.textContent=c.mod||'?';
+      bdgRow.appendChild(mdB); bdgRow.appendChild(moB);
+
+      inner.appendChild(repEl); inner.appendChild(tagRowP); inner.appendChild(dEl); inner.appendChild(divEl); inner.appendChild(bdgRow);
+      card.appendChild(grip); card.appendChild(bar); card.appendChild(inner);
+      if (c.cr === lastDropped) card.classList.add('just-dropped');
+      body.appendChild(card);
+    });
+  }
+  col.appendChild(body);
+  area.appendChild(col);
+}
+
+function updateStats() {
+  const total = state.active.length;
+  const cnt   = s => state.active.filter(c => c.status===s).length;
+  const pa=cnt('PENDING APPROVAL'), ap=cnt('APPROVED'), ip=cnt('IN PROGRESS'), co=cnt('COMPLETED'), na=cnt('REJECTED');
+  const totalCompleted = co + state.prev.length;
+
+  setText('stat-total', total);
+  setText('stat-PA',    pa);
+  setText('stat-AP',    ap);
+  setText('stat-IP',    ip);
+  setText('stat-CO',    totalCompleted);
+  setText('stat-NA',    na);
+}
+
+function toggleAll() {
+  allCollapsed = !allCollapsed;
+  document.querySelectorAll('#main-row .card, #na-col-wrap .card').forEach(c => c.classList.toggle('collapsed', allCollapsed));
+  state.active.forEach(c => { c._collapsed = allCollapsed; });
+  const btn = document.getElementById('toggle-all-btn');
+  if (btn) btn.textContent = allCollapsed ? '⊞ Expand All' : '⊟ Collapse All';
+}
+
+function setFilter(mod) {
+  activeFilter = mod;
+  document.querySelectorAll('.mod-chip,.mod-chip-all').forEach(c => c.classList.remove('active'));
+  const chip = document.getElementById(`fchip-${mod}`);
+  if (chip) chip.classList.add('active');
+  applyFilter();
+}
+
+
+function onSearchInput() {
+  _searchQ = (document.getElementById('search-input').value || '').trim().toLowerCase();
+  const clrBtn = document.getElementById('search-clear');
+  if (clrBtn) clrBtn.style.display = _searchQ ? '' : 'none';
+  applyFilter();
+}
+function clearSearch() {
+  _searchQ = '';
+  const inp = document.getElementById('search-input');
+  if (inp) inp.value = '';
+  const clrBtn = document.getElementById('search-clear');
+  if (clrBtn) clrBtn.style.display = 'none';
+  applyFilter();
+}
+
+function setStatusFilter(status) {
+  _statusFilter = (_statusFilter === status) ? null : status;
+  document.querySelectorAll('.stat-item.s-clickable').forEach(el => el.classList.remove('s-active'));
+  if (_statusFilter) {
+    const MAP = {'PENDING APPROVAL':'sitem-PA','APPROVED':'sitem-AP','IN PROGRESS':'sitem-IP','COMPLETED':'sitem-CO','REJECTED':'sitem-NA'};
+    const el = document.getElementById(MAP[_statusFilter]);
+    if (el) el.classList.add('s-active');
+  }
+  applyFilter();
+}
+
+function applyFilter() {
+  const filtered = activeFilter !== 'ALL';
+  const searching = _searchQ.length > 0;
+  const updOnly = _updFilterOn;
+  function matchesSearch(data) {
+    if (!searching) return true;
+    return (data.cr||'').toLowerCase().includes(_searchQ) ||
+           (data.desc||'').toLowerCase().includes(_searchQ) ||
+           (data.mod||'').toLowerCase().includes(_searchQ) ||
+           (data.note||'').toLowerCase().includes(_searchQ);
+  }
+  // Active columns (main + REJECTED)
+  document.querySelectorAll('#main-row .card, #na-col-wrap .card').forEach(card => {
+    const data = state.active.find(a => a.cr === card.dataset.cr);
+    const modOk    = !filtered || (data && data.mod===activeFilter);
+    const srchOk   = matchesSearch(data || {});
+    const updOk    = !updOnly || card.dataset.upd === '1';
+    const statusOk = !_statusFilter || (data && data.status === _statusFilter);
+    card.style.display = (modOk && srchOk && updOk && statusOk) ? '' : 'none';
+  });
+  // Prev Completed column
+  document.querySelectorAll('#prev-area .card').forEach(card => {
+    const data = state.prev.find(p => p.cr === card.dataset.cr);
+    const modOk    = !filtered || (data && data.mod===activeFilter);
+    const srchOk   = matchesSearch(data || {});
+    const updOk    = !updOnly || card.dataset.upd === '1';
+    const prevStOk = !_statusFilter || _statusFilter === 'COMPLETED';
+    card.style.display = (modOk && srchOk && updOk && prevStOk) ? '' : 'none';
+  });
+  // Update counters — active statuses
+  STATUS_ORD.forEach(status => {
+    const key   = status.replace(/ /g,'_');
+    const cntEl = document.getElementById(`cnt-${key}`);
+    const body  = document.querySelector(`.c-${key} .col-body`);
+    if (!cntEl || !body) return;
+    if (!filtered) {
+      cntEl.textContent = state.active.filter(c=>c.status===status).length;
+    } else {
+      const vis   = [...body.querySelectorAll('.card')].filter(c=>c.style.display!=='none').length;
+      const total = state.active.filter(c=>c.status===status).length;
+      cntEl.textContent = `${vis}/${total}`;
+    }
+  });
+  // Update counter — PREV COMPLETED
+  const prevCntEl = document.querySelector('.c-PREV .col-cnt');
+  if (prevCntEl) {
+    if (!filtered) {
+      prevCntEl.textContent = state.prev.length;
+    } else {
+      const prevBody = document.querySelector('.c-PREV .col-body');
+      const vis = prevBody ? [...prevBody.querySelectorAll('.card')].filter(c=>c.style.display!=='none').length : 0;
+      prevCntEl.textContent = `${vis}/${state.prev.length}`;
+    }
+  }
+}
+
+function switchView(view) {
+  const allSections = ['toolbar','stats-bar','kanban-view','analysis-section','report-section'];
+  const allNavs     = ['nav-kanban','nav-analysis','nav-report'];
+  allSections.forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none';});
+  allNavs.forEach(id=>{const e=document.getElementById(id);if(e)e.classList.remove('active');});
+  if (view === 'kanban') {
+    ['toolbar','stats-bar','kanban-view'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='';});
+    document.getElementById('nav-kanban').classList.add('active');
+  } else if (view === 'analysis') {
+    document.getElementById('analysis-section').style.display='block';
+    document.getElementById('nav-analysis').classList.add('active');
+    renderAnalysis();
+  } else if (view === 'report') {
+    document.getElementById('report-section').style.display='';
+    document.getElementById('nav-report').classList.add('active');
+    renderReport();
+  }
+}
+
+function getModuleData() {
+  const r = {};
+  MODS.forEach(m => { r[m] = { count:0, totalMD:0 }; });
+  state.active.forEach(c => {
+    const m = MODS.includes(c.mod) ? c.mod : null;
+    if (!m) return;
+    r[m].count++;
+    const n = parseFloat(c.md);
+    if (!isNaN(n)) r[m].totalMD += n;
+  });
+  return r;
+}
+
+function getPhaseData() {
+  const r = {};
+  PHASE_ORDER.forEach(p => { r[p] = { count:0, totalMD:0 }; });
+  const activeCRs = excludeNotApproved
+    ? state.active.filter(c => c.status !== 'PENDING APPROVAL' && c.status !== 'REJECTED')
+    : state.active;
+  const allCRs = [
+    ...activeCRs.map(c => ({ mon:c.mon, md:c.md })),
+    ...state.prev.map(c  => ({ mon:c.mon, md:c.md }))
+  ];
+  allCRs.forEach(c => {
+    const phase = monthToPhase(c.mon);
+    if (!phase) return;
+    r[phase].count++;
+    const n = parseFloat(c.md);
+    if (!isNaN(n)) r[phase].totalMD += n;
+  });
+  return r;
+}
+
+function syncToggleBtn() {
+  const btn   = document.getElementById('na-toggle-btn');
+  const label = document.getElementById('na-toggle-label');
+  if (btn)   btn.classList.toggle('active', excludeNotApproved);
+  if (label) label.textContent = excludeNotApproved ? 'Excl. Pending/Rejected' : 'Incl. Pending/Rejected';
+}
+
+function toggleNotApproved() {
+  excludeNotApproved = !excludeNotApproved;
+  syncToggleBtn();
+  renderThresholdChart();
+}
+
+function renderAnalysis() {
+  const total   = state.active.length;
+  const ip      = state.active.filter(c=>c.status==='IN PROGRESS').length;
+  const co      = state.active.filter(c=>c.status==='COMPLETED').length;
+  const totalCompleted = co + state.prev.length;
+  const grandTotal     = total + state.prev.length;
+  const totalMD = state.active.reduce((s,c)=>{const n=parseFloat(c.md);return s+(isNaN(n)?0:n);},0);
+
+  setText('kpi-total', total);
+  setText('kpi-md',    totalMD > 0 ? `${totalMD} MD` : '—');
+  setText('kpi-ip',    ip);
+  setText('kpi-ip-pct',  total>0 ? `${Math.round(ip/total*100)}% of active CRs` : '—');
+  setText('kpi-done',    totalCompleted);
+  setText('kpi-done-pct', grandTotal>0 ? `${Math.round(totalCompleted/grandTotal*100)}% completion rate` : '—');
+
+  syncToggleBtn();
+  renderThresholdChart();
+  renderModuleChart();
+  renderModuleTable();
+}
+
+function renderThresholdChart() {
+  const phaseData  = getPhaseData();
+  const phases     = PHASE_ORDER.filter(p => phaseData[p].count > 0);
+  const labels     = phases.map(p => PHASE_LABEL[p] || p);
+  const counts     = phases.map(p => phaseData[p].count);
+  const mdTotals   = phases.map(p => phaseData[p].totalMD);
+  const bgCols     = phases.map(p => PHASE_COLORS[p] + 'CC');
+  const bdCols     = phases.map(p => PHASE_COLORS[p]);
+
+  const legend = document.getElementById('phase-legend');
+  if (legend) {
+    legend.innerHTML = PHASE_ORDER.map(p =>
+      `<div class="phase-chip"><div class="phase-legend-dot" style="background:${PHASE_COLORS[p]}"></div>${PHASE_LABEL[p] || p}</div>`
+    ).join('');
+  }
+
+  const ctx = document.getElementById('threshold-chart');
+  if (!ctx || !window.Chart) return;
+  if (thresholdChart) { thresholdChart.destroy(); thresholdChart = null; }
+
+  thresholdChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'CR Count',
+        data: counts,
+        backgroundColor: bgCols,
+        borderColor: bdCols,
+        borderWidth: 2,
+        borderRadius: 8,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: ctx2 => ctx2[0].label,
+            label: ctx2 => ` CRs: ${ctx2.raw}`,
+            afterLabel: ctx2 => {
+              const md = mdTotals[ctx2.dataIndex];
+              return md > 0 ? ` Total MD: ${md}` : '';
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: { stepSize:1, font:{ size:11 } },
+          title: { display:true, text:'Number of CRs', font:{ size:11 }, color:'#666' },
+          grid: { color:'#f0f0f0' }
+        },
+        x: {
+          grid: { display:false },
+          ticks: { font:{ size:12, weight:'600' } }
+        }
+      }
+    }
+  });
+}
+
+function renderModuleChart() {
+  const data   = getModuleData();
+  const labels = MODS.filter(m => data[m].count > 0 || data[m].totalMD > 0);
+  const mdVals = labels.map(m => data[m].totalMD);
+  const bgCols = labels.map(m => MOD_COLOR[m] || '#808080');
+  const cntVals= labels.map(m => data[m].count);
+
+  const ctx = document.getElementById('md-chart');
+  if (!ctx || !window.Chart) return;
+  if (mdChart) { mdChart.destroy(); mdChart = null; }
+
+  mdChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Total MD',
+        data: mdVals,
+        backgroundColor: bgCols.map(c => c + 'CC'),
+        borderColor: bgCols,
+        borderWidth: 2,
+        borderRadius: 8,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: ctx2 => ctx2[0].label,
+            label: ctx2 => ` Total MD: ${ctx2.raw}`,
+            afterLabel: ctx2 => ` CRs: ${cntVals[ctx2.dataIndex]}   Avg: ${cntVals[ctx2.dataIndex]>0?(ctx2.raw/cntVals[ctx2.dataIndex]).toFixed(1):'—'} MD/CR`
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: { display:true, text:'Man-days (MD)', font:{ size:11 }, color:'#666' },
+          grid: { color:'#f0f0f0' },
+          ticks: { font:{ size:11 } }
+        },
+        x: {
+          grid: { display:false },
+          ticks: { font:{ size:12, weight:'600' } }
+        }
+      }
+    }
+  });
+}
+
+function renderModuleTable() {
+  const data   = getModuleData();
+  const labels = MODS.filter(m => data[m].count > 0 || data[m].totalMD > 0);
+  const grandMD= labels.reduce((s,m)=>s+data[m].totalMD, 0);
+  const tbody  = document.getElementById('analysis-tbody');
+  if (tbody) {
+    tbody.innerHTML = labels.map(m => {
+      const avg  = data[m].count>0&&data[m].totalMD>0 ? (data[m].totalMD/data[m].count).toFixed(1) : '—';
+      const share= grandMD>0&&data[m].totalMD>0 ? Math.round(data[m].totalMD/grandMD*100)+'%' : '—';
+      return `<tr>
+        <td><span class="an-badge" style="background:${MOD_COLOR[m]||'#808080'}">${m}</span></td>
+        <td>${data[m].count}</td>
+        <td>${data[m].totalMD||'—'}</td>
+        <td>${avg}</td>
+        <td>${share}</td>
+      </tr>`;
+    }).join('');
+  }
+}
+
+
+let _detailCr     = null;
+let _searchQ      = '';
+let _detailIsPrev = false;
+let _detailLog    = [];
+let colSort       = {};
+
+function renderTimelineEntries() {
+  const list = document.getElementById('tl-list');
+  if (!list) return;
+  if (!_detailLog.length) {
+    list.innerHTML = '<div class="tl-empty">No entries yet — add a date and comment above.</div>';
+    return;
+  }
+  list.innerHTML = _detailLog.map((e, i) => `
+    <div class="tl-entry">
+      <div class="tl-date-badge">${e.date}</div>
+      <div class="tl-comment">${e.comment.replace(/</g,'&lt;')}</div>
+      <button class="tl-del" title="Delete entry" onclick="deleteTimelineEntry(${i})">×</button>
+    </div>`).join('');
+}
+
+function addTimelineEntry() {
+  const dateVal    = document.getElementById('tl-date').value;
+  const commentVal = document.getElementById('tl-comment').value.trim();
+  if (!dateVal || !commentVal) {
+    document.getElementById(dateVal ? 'tl-comment' : 'tl-date').focus(); return;
+  }
+  const date = fromInputDate(dateVal);
+  _detailLog.push({ date, comment: commentVal });
+  _detailLog.sort((a, b) => (parsePhaseDate(a.date)||0) - (parsePhaseDate(b.date)||0)); // earliest first
+  renderTimelineEntries();
+  document.getElementById('tl-date').value    = '';
+  document.getElementById('tl-comment').value = '';
+  document.getElementById('tl-date').focus();
+}
+
+function deleteTimelineEntry(idx) {
+  _detailLog.splice(idx, 1);
+  renderTimelineEntries();
+}
+
+function openDetail(cr) {
+  const isPrev = !state.active.find(c => c.cr === cr);
+  const card = state.active.find(c => c.cr === cr) || state.prev.find(c => c.cr === cr);
+  if (!card) return;
+  _detailCr = cr;
+  _detailIsPrev = isPrev;
+  document.getElementById('detail-sbar').style.background = isPrev ? 'var(--teal)' : (ACCENT[card.status] || '#888');
+  document.getElementById('detail-cr-num').value = (card.cr||'').replace(/^CR-/i,'');
+  document.getElementById('detail-issue').value = card.issue || '';
+  document.getElementById('detail-ref').value = card.ref || '';
+  document.getElementById('detail-desc').value = card.desc;
+  const ss = document.getElementById('detail-status');
+  const statusOpts = _detailIsPrev
+    ? [...STATUS_ORD, 'PREV COMPLETED']
+    : STATUS_ORD;
+  ss.onchange = null; // clear before rebuild
+  ss.innerHTML = statusOpts.map(s =>
+    `<option value="${s}"${(isPrev ? s==='PREV COMPLETED' : s===card.status) ? ' selected' : ''}>${s}</option>`
+  ).join('');
+  function syncPhaseSection() {
+    const isIP = ss.value === 'IN PROGRESS';
+    const allow = isIP || _detailIsPrev; // prev cards can view/edit phase dates
+    const ps = document.getElementById('phase-section');
+    ps.classList.toggle('collapsed', !allow);
+    ['ds','dev','ut','uat','go'].forEach(k => {
+      document.getElementById('dp-'+k+'P').disabled = !allow;
+      document.getElementById('dp-'+k+'A').disabled = !allow;
+    });
+  }
+  ss.onchange = () => {
+    const v = ss.value;
+    document.getElementById('detail-sbar').style.background = _detailIsPrev ? 'var(--teal)' : (ACCENT[v] || '#888');
+    syncPhaseSection();
+    const errEl = document.getElementById('detail-err');
+    if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+  };
+  syncPhaseSection(); // set initial state when modal opens
+  const ms = document.getElementById('detail-mod');
+  ms.innerHTML = MODS.map(m => `<option value="${m}"${m===card.mod?' selected':''}>${m}</option>`).join('');
+  document.getElementById('detail-md').value = card.md;
+  document.getElementById('detail-mon').value = card.mon;
+  document.getElementById('detail-creator').value = card.creator || '';
+  document.getElementById('detail-pic').value = card.pic || '';
+  const urlIn = document.getElementById('detail-url');
+  urlIn.value = card.url || '';
+  const openBtn = document.getElementById('detail-open-btn');
+  openBtn.disabled = !card.url;
+  urlIn.addEventListener('input', () => { openBtn.disabled = !urlIn.value.trim(); });
+  document.getElementById('detail-note').value = card.note;
+  ['ds','dev','ut','uat','go'].forEach(k => {
+    document.getElementById('dp-'+k+'P').value = toInputDate(card[k+'P']);
+    document.getElementById('dp-'+k+'A').value = toInputDate(card[k+'A']);
+  });
+  // Timeline
+  _detailLog = (card.log || []).map(e => ({...e})).sort((a,b) => (parsePhaseDate(a.date)||0) - (parsePhaseDate(b.date)||0)); // earliest first
+  renderTimelineEntries();
+  document.getElementById('tl-date').value = '';
+  document.getElementById('tl-comment').value = '';
+
+  document.getElementById('detail-modal').style.display = 'flex';
+  // Update Prev/Next buttons
+  const _navAll  = [...state.active, ...state.prev];
+  const _navIdx  = _navAll.findIndex(c => c.cr === cr);
+  const _prevBtn = document.getElementById('detail-prev-btn');
+  const _nextBtn = document.getElementById('detail-next-btn');
+  const _navPos  = document.getElementById('detail-nav-pos');
+  if (_prevBtn) _prevBtn.disabled = _navIdx <= 0;
+  if (_nextBtn) _nextBtn.disabled = _navIdx >= _navAll.length - 1;
+  if (_navPos)  _navPos.textContent = _navAll.length > 0 ? (_navIdx + 1) + '/' + _navAll.length : '';
+  setTimeout(() => document.getElementById('detail-desc').focus(), 60);
+}
+
+function navigateDetail(direction) {
+  const allCards = [...state.active, ...state.prev];
+  const curCr   = _detailCr;
+  const curIdx  = allCards.findIndex(c => c.cr === curCr);
+  const tgtIdx  = curIdx + direction;
+  if (tgtIdx < 0 || tgtIdx >= allCards.length || curIdx < 0) return;
+  const tgtCr   = allCards[tgtIdx].cr;
+  applyDetail(); // saves any pending changes, closes modal
+  setTimeout(() => openDetail(tgtCr), 0);
+}
+
+function applyDetail() {
+  if (!_detailCr) return;
+  const card = state.active.find(c => c.cr === _detailCr) || state.prev.find(c => c.cr === _detailCr);
+  if (!card) { closeDetail(); return; }
+
+  const crNumRaw = document.getElementById('detail-cr-num').value.trim().replace(/^CR-/i,'').replace(/\D/g,'');
+  const newCr = crNumRaw ? 'CR-' + crNumRaw : '';
+  if (!newCr) {
+    const errEl = document.getElementById('detail-err');
+    errEl.textContent = '⚠ Please enter a CR number';
+    errEl.style.display = 'inline';
+    document.getElementById('detail-cr-num').focus();
+    return;
+  }
+  // Duplicate check — allow same CR (no change) but block collision with another card
+  const dupActive = state.active.find(c => c.cr === newCr && c.cr !== _detailCr);
+  const dupPrev   = state.prev.find(c => c.cr === newCr && c.cr !== _detailCr);
+  if (dupActive || dupPrev) {
+    const errEl = document.getElementById('detail-err');
+    errEl.textContent = '⚠ ' + newCr + ' already exists on another card';
+    errEl.style.display = 'inline';
+    document.getElementById('detail-cr-num').focus();
+    return;
+  }
+  const newIssue = document.getElementById('detail-issue').value.trim().replace(/^Issue-/i,'').replace(/\D/g,'');
+  const newRef   = document.getElementById('detail-ref').value.trim();
+  const newStatus = document.getElementById('detail-status').value;
+  const ph = {}; ['ds','dev','ut','uat','go'].forEach(k => {
+    ph[k+'P'] = fromInputDate(document.getElementById('dp-'+k+'P').value);
+    ph[k+'A'] = fromInputDate(document.getElementById('dp-'+k+'A').value);
+  });
+
+  // ── Validation: COMPLETED requires GO Actual date ─────────────────────────
+  if (newStatus === 'COMPLETED' && !ph.goA) {
+    const errEl = document.getElementById('detail-err');
+    errEl.textContent = '⚠ Fill in GO Actual date before marking Completed';
+    errEl.style.display = 'inline';
+    document.getElementById('dp-goA').focus();
+    return; // block save
+  }
+
+  const newDesc    = document.getElementById('detail-desc').value.trim() || card.desc;
+  const newMod     = document.getElementById('detail-mod').value;
+  const newMd      = document.getElementById('detail-md').value.trim() || 'N/A';
+  const newMon     = document.getElementById('detail-mon').value.trim().toUpperCase() || 'N/A';
+  const newCreator = document.getElementById('detail-creator').value.trim();
+  const newPic     = document.getElementById('detail-pic').value.trim();
+  const newUrl     = document.getElementById('detail-url').value.trim();
+  const newNote    = document.getElementById('detail-note').value.trim();
+  const phChanged  = ['ds','dev','ut','uat','go'].some(k =>
+    ph[k+'P']!==(card[k+'P']||'') || ph[k+'A']!==(card[k+'A']||''));
+  const logChanged = JSON.stringify(_detailLog) !== JSON.stringify(card.log||[]);
+  const changed = newCr!==_detailCr || newDesc!==card.desc || newStatus!==card.status || newMod!==card.mod ||
+    newMd!==card.md || newMon!==card.mon || newCreator!==(card.creator||'') || newPic!==(card.pic||'') ||
+    newUrl!==(card.url||'') || newNote!==card.note || newIssue!==(card.issue||'') || newRef!==(card.ref||'') || phChanged || logChanged;
+  if (changed) {
+    card.cr=newCr; card.desc=newDesc; card.status=newStatus; card.mod=newMod;
+    card.md=newMd; card.mon=newMon; card.creator=newCreator; card.pic=newPic;
+    card.url=newUrl; card.note=newNote; card.issue=newIssue; card.ref=newRef;
+    ['ds','dev','ut','uat','go'].forEach(k => { card[k+'P']=ph[k+'P']; card[k+'A']=ph[k+'A']; });
+    card.log = [..._detailLog];
+    // If a PREV COMPLETED card is reassigned to an active status → move it
+    if (_detailIsPrev && newStatus !== 'PREV COMPLETED') {
+      const idx = state.prev.indexOf(card);
+      if (idx !== -1) state.prev.splice(idx, 1);
+      state.active.push({ ...card, status: newStatus, _collapsed: false });
+    }
+    markDirty(); render();
+  }
+  _detailCr = null; _detailIsPrev = false; // card.cr already updated above
+  document.getElementById('detail-modal').style.display = 'none';
+}
+
+function closeDetail() {
+  // Top-right ✕ and backdrop click — discard any unsaved changes
+  _detailCr = null;
+  document.getElementById('detail-modal').style.display = 'none';
+}
+
+function openDetailLink() {
+  const url = document.getElementById('detail-url').value.trim();
+  if (url) window.open(url, '_blank', 'noopener');
+}
+
+function deleteFromDetail() {
+  const cr = _detailCr;
+  if (!cr) return;
+  const card = state.active.find(c => c.cr === cr);
+  closeDetail();
+  if (card) showDeleteConfirm(cr, card.desc);
+}
+
+let _pendingDeleteCr = null;
+
+function showDeleteConfirm(cr, desc) {
+  _pendingDeleteCr = cr;
+  const bodyEl = document.getElementById('modal-body-text');
+  if (bodyEl) {
+    bodyEl.innerHTML = `<span class="modal-cr">${cr}</span> — ${desc || '(no description)'}`;
+  }
+  const modal = document.getElementById('confirm-modal');
+  if (modal) { modal.style.display = 'flex'; }
+  setTimeout(() => { const btn = document.getElementById('modal-confirm-btn'); if (btn) btn.focus(); }, 50);
+}
+
+function closeConfirmModal() {
+  _pendingDeleteCr = null;
+  const modal = document.getElementById('confirm-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function confirmDelete() {
+  if (!_pendingDeleteCr) return;
+  const cr  = _pendingDeleteCr;
+  const idx = state.active.findIndex(c => c.cr === cr);
+  if (idx >= 0) {
+    state.active.splice(idx, 1);
+    markDirty(); render();
+    toast(`${cr} deleted`, '#6B7280');
+  }
+  closeConfirmModal();
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (document.getElementById('detail-modal')?.style.display !== 'none') closeDetail();
+    else if (document.getElementById('confirm-modal')?.style.display !== 'none') closeConfirmModal();
+  }
+});
+
+function markDirty() {
+  isDirty = true;
+  setSaveStatus('● Unsaved', 'saving');
+  clearTimeout(_autoSaveTimer);
+  _autoSaveTimer = setTimeout(autoSaveExcel, 1200);
+}
+function clearDirty() {
+  isDirty = false;
+  setSaveStatus('✓ Saved', 'saved');
+  const _db = document.getElementById('btn-download');
+  if (_db) { _db.classList.add('btn-clean'); _db.title = 'Download Excel (no unsaved changes)'; }
+  setTimeout(() => { if (!isDirty) setSaveStatus(''); }, 3000);
+}
+function setSaveStatus(msg, type) {
+  const e = document.getElementById('save-status');
+  if (!e) return;
+  e.textContent = msg;
+  e.className = 'save-status' + (type ? ' ' + type : '');
+}
+function toast(msg, borderColor) {
+  const e = document.getElementById('toast-el');
+  if (!e) return;
+  e.textContent = msg;
+  e.style.borderLeftColor = borderColor || '#1F7A6E';
+  e.style.opacity   = '1';
+  e.style.transform = 'translateX(-50%) translateY(0)';
+  clearTimeout(e._t);
+  e._t = setTimeout(()=>{ e.style.opacity='0'; e.style.transform='translateX(-50%) translateY(14px)'; }, 2300);
+}
+
+function getXS() { return window.XLSXStyle || window.XLSX; }
+
+function makeCell(v, style) {
+  const t = typeof v === 'number' ? 'n' : 's';
+  return { v, t, s: style };
+}
+
+async function autoSaveExcel() {
+  // Download-only save — no direct file writes (prevents corruption when Excel is open)
+  const btn = document.getElementById('btn-download');
+  if (btn) { btn.classList.remove('btn-clean'); btn.title = 'Download Excel (unsaved changes)'; }
+  setSaveStatus('● Unsaved — click 💾 Download Excel', 'saving');
+}
+
+async function downloadExcel() {
+  setSaveStatus('Preparing…', 'saving');
+  try {
+    const blob = await buildExcelBlob();
+
+    // ── Integrity check: valid ZIP (PK header) + minimum size ────────────
+    const ab    = await blob.arrayBuffer();
+    const bytes = new Uint8Array(ab);
+    const isZip = bytes[0]===0x50 && bytes[1]===0x4B;          // 'PK'
+    const minSz = (state.active.length + state.prev.length) * 200; // ~200 B per row
+    if (!isZip || blob.size < minSz) {
+      setSaveStatus('⚠ Download aborted — generated file looks invalid', 'error');
+      console.warn(`Integrity: isZip=${isZip}, size=${blob.size}, minExpected=${minSz}`);
+      return;
+    }
+
+    // ── Trigger browser download (no file-locking issues) ─────────────────
+    const url  = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href     = url;
+    link.download = _lastFileName || 'CR_Kanban_Updated.xlsx';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+    clearDirty(); // clearDirty() adds btn-clean automatically
+  } catch(e) {
+    setSaveStatus('⚠ Download failed', 'error');
+    console.error(e);
+  }
+}
+
+async function buildExcelBlob() {
+  const hdrStyle = {
+    font:      { bold:true, color:{ rgb:'FFFFFF' }, sz:11 },
+    fill:      { fgColor:{ rgb:'1F3864' } },
+    alignment: { horizontal:'center', vertical:'center', wrapText:true },
+    border: {
+      top:    { style:'thin', color:{ rgb:'FFFFFF' } },
+      bottom: { style:'thin', color:{ rgb:'FFFFFF' } },
+      left:   { style:'thin', color:{ rgb:'FFFFFF' } },
+      right:  { style:'thin', color:{ rgb:'FFFFFF' } }
+    }
+  };
+  const subHdrStyle = {
+    font:      { bold:true, color:{ rgb:'FFFFFF' }, sz:10 },
+    fill:      { fgColor:{ rgb:'2E74B5' } },
+    alignment: { horizontal:'center', vertical:'center', wrapText:true },
+    border: {
+      top:    { style:'thin', color:{ rgb:'AAAAAA' } },
+      bottom: { style:'thin', color:{ rgb:'AAAAAA' } },
+      left:   { style:'thin', color:{ rgb:'AAAAAA' } },
+      right:  { style:'thin', color:{ rgb:'AAAAAA' } }
+    }
+  };
+  function rowStyle(i) {
+    const bg = i % 2 === 0 ? 'FFFFFF' : 'EEF3FA';
+    return {
+      font:      { sz:10, color:{ rgb:'333333' } },
+      fill:      { fgColor:{ rgb: bg } },
+      alignment: { vertical:'center', wrapText:true },
+      border: {
+        top:    { style:'hair', color:{ rgb:'DDDDDD' } },
+        bottom: { style:'hair', color:{ rgb:'DDDDDD' } },
+        left:   { style:'hair', color:{ rgb:'DDDDDD' } },
+        right:  { style:'hair', color:{ rgb:'DDDDDD' } }
+      }
+    };
+  }
+  function statusStyle(status, i) {
+    const STATUS_BG = { 'PENDING APPROVAL':'FEF0C7','APPROVED':'CCFBF1','IN PROGRESS':'DBEAFE','COMPLETED':'D1FAE5','REJECTED':'FFD6DA' };
+    const bg = STATUS_BG[status] || (i%2===0?'FFFFFF':'EEF3FA');
+    return {
+      font:      { bold:true, sz:10, color:{ rgb:'1F3864' } },
+      fill:      { fgColor:{ rgb: bg } },
+      alignment: { horizontal:'center', vertical:'center' },
+      border: {
+        top:    { style:'hair', color:{ rgb:'DDDDDD' } },
+        bottom: { style:'hair', color:{ rgb:'DDDDDD' } },
+        left:   { style:'hair', color:{ rgb:'DDDDDD' } },
+        right:  { style:'hair', color:{ rgb:'DDDDDD' } }
+      }
+    };
+  }
+  function modStyle(mod, i) {
+    const MOD_BG = { FI:'EDE9FE',CO:'E0F2FE',PP:'FEF3C7',MM:'D1FAE5',IF:'FFE4E8',SD:'E0E7FF' };
+    const bg = MOD_BG[mod] || (i%2===0?'FFFFFF':'EEF3FA');
+    return {
+      font:      { bold:true, sz:10, color:{ rgb:'1F3864' } },
+      fill:      { fgColor:{ rgb: bg } },
+      alignment: { horizontal:'center', vertical:'center' },
+      border: {
+        top:    { style:'hair', color:{ rgb:'DDDDDD' } },
+        bottom: { style:'hair', color:{ rgb:'DDDDDD' } },
+        left:   { style:'hair', color:{ rgb:'DDDDDD' } },
+        right:  { style:'hair', color:{ rgb:'DDDDDD' } }
+      }
+    };
+  }
+
+  const aHeaders = ['CR Number','Description','Status','Module','MD','MD Month','Creator','ABeam PIC','Link / URL','Notes','Issue Number','Reference Text','DS Plan','DS Actual','DEV Plan','DEV Actual','UT Plan','UT Actual','UAT Plan','UAT Actual','GO Plan','GO Actual'];
+
+  // Build active rows
+  const activeRows = state.active.map((c,i) => [
+    makeCell(c.cr,          rowStyle(i)),
+    makeCell(c.desc,        rowStyle(i)),
+    makeCell(c.status,      statusStyle(c.status, i)),
+    makeCell(c.mod,         modStyle(c.mod, i)),
+    makeCell(c.md,          rowStyle(i)),
+    makeCell(c.mon,         rowStyle(i)),
+    makeCell(c.creator||'', rowStyle(i)),
+    makeCell(c.pic||'',     rowStyle(i)),
+    makeCell(c.url||'',     rowStyle(i)),
+    makeCell(c.note,        rowStyle(i)),
+    makeCell(c.issue||'', rowStyle(i)), makeCell(c.ref||'',   rowStyle(i)),
+    makeCell(c.dsP||'',  rowStyle(i)), makeCell(c.dsA||'',  rowStyle(i)),
+    makeCell(c.devP||'', rowStyle(i)), makeCell(c.devA||'', rowStyle(i)),
+    makeCell(c.utP||'',  rowStyle(i)), makeCell(c.utA||'',  rowStyle(i)),
+    makeCell(c.uatP||'', rowStyle(i)), makeCell(c.uatA||'', rowStyle(i)),
+    makeCell(c.goP||'',  rowStyle(i)), makeCell(c.goA||'',  rowStyle(i))
+  ]);
+
+  // Build PREV COMPLETED rows
+  const prevRows = state.prev.map((c,i) => {
+    const ri = state.active.length + i;
+    return [
+      makeCell(c.cr,             rowStyle(ri)), makeCell(c.desc,         rowStyle(ri)),
+      makeCell('PREV COMPLETED', statusStyle('COMPLETED',ri)), makeCell(c.mod, modStyle(c.mod,ri)),
+      makeCell(c.md,             rowStyle(ri)), makeCell(c.mon,          rowStyle(ri)),
+      makeCell(c.creator||'',    rowStyle(ri)), makeCell(c.pic||'',      rowStyle(ri)), makeCell(c.url||'',      rowStyle(ri)),
+      makeCell(c.note||'',       rowStyle(ri)),
+      makeCell(c.issue||'', rowStyle(ri)), makeCell(c.ref||'',   rowStyle(ri)),
+      makeCell(c.dsP||'',  rowStyle(ri)), makeCell(c.dsA||'',  rowStyle(ri)),
+      makeCell(c.devP||'', rowStyle(ri)), makeCell(c.devA||'', rowStyle(ri)),
+      makeCell(c.utP||'',  rowStyle(ri)), makeCell(c.utA||'',  rowStyle(ri)),
+      makeCell(c.uatP||'', rowStyle(ri)), makeCell(c.uatA||'', rowStyle(ri)),
+      makeCell(c.goP||'',  rowStyle(ri)), makeCell(c.goA||'',  rowStyle(ri))
+    ];
+  });
+
+  // Combine BEFORE building the sheet so !ref covers all rows
+  const aData = [...activeRows, ...prevRows];
+
+  const ws1 = buildStyledSheet(aHeaders, aData, hdrStyle, subHdrStyle);
+  ws1['!cols'] = [
+    {wch:12},{wch:40},{wch:16},{wch:10},{wch:8},{wch:11},{wch:18},{wch:18},{wch:36},{wch:36},
+    {wch:14},{wch:26},
+    {wch:11},{wch:11},{wch:11},{wch:11},{wch:11},{wch:11},{wch:11},{wch:11},{wch:11},{wch:11}
+  ];
+  ws1['!rows'] = [{ hpt:22 }]; // header row height
+
+  const XS = getXS();
+  const wb = XS.utils.book_new();
+  // Add "IN PROGRESS PHASE DATES" group header spanning cols J-S (9-18)
+  const ipHdrStyle = { font:{bold:true,color:{rgb:'FFFFFF'},size:10}, fill:{fgColor:{rgb:'1D6FA4'}}, alignment:{horizontal:'center',vertical:'center'} };
+  const encIP = XLSX.utils.encode_cell.bind(XLSX.utils);
+  ws1[encIP({r:0,c:12})] = { v:'IN PROGRESS PHASE DATES', t:'s', s:ipHdrStyle };
+  for (let c=13;c<=21;c++) ws1[encIP({r:0,c})] = { v:'', t:'s', s:ipHdrStyle };
+  ws1['!merges'] = [
+    { s:{r:0,c:0}, e:{r:0,c:11} },
+    { s:{r:0,c:12}, e:{r:0,c:21} }
+  ];
+  XS.utils.book_append_sheet(wb, ws1, 'Active CRs');
+
+  // ── CR Timeline sheet ─────────────────────────────────────────────────────
+  const tlHeaders = ['CR Number', 'Date', 'Comment'];
+  const tlRows = [];
+  [...state.active, ...state.prev].forEach(c => {
+    if (c.log && c.log.length) {
+      [...c.log].forEach(e => {   // already sorted earliest-first
+        const i = tlRows.length;
+        tlRows.push([
+          makeCell(c.cr,       rowStyle(i)),
+          makeCell(e.date,     rowStyle(i)),
+          makeCell(e.comment,  rowStyle(i))
+        ]);
+      });
+    }
+  });
+  const tlHdrStyle = {
+    font:      { bold:true, color:{ rgb:'FFFFFF' }, sz:11 },
+    fill:      { fgColor:{ rgb:'1B2B52' } },
+    alignment: { horizontal:'center', vertical:'center', wrapText:true },
+    border: { top:{style:'thin',color:{rgb:'FFFFFF'}}, bottom:{style:'thin',color:{rgb:'FFFFFF'}},
+              left:{style:'thin',color:{rgb:'FFFFFF'}}, right:{style:'thin',color:{rgb:'FFFFFF'}} }
+  };
+  const ws2 = buildStyledSheet(tlHeaders, tlRows, tlHdrStyle, subHdrStyle);
+  ws2['!cols'] = [{wch:14},{wch:14},{wch:80}];
+  ws2['!rows'] = [{ hpt:22 }];
+  XS.utils.book_append_sheet(wb, ws2, 'CR Timeline');
+
+  // _Baseline sheet — embeds meeting snapshot so indicators work when shared
+  if (state.baseline) {
+    const blHeaders = ['CR Number','Status','Description','Module','MD','MD Month','Notes','Issue Number','Reference Text','ABeam PIC',
+      'DS Plan','DS Actual','DEV Plan','DEV Actual','UT Plan','UT Actual',
+      'UAT Plan','UAT Actual','GO Plan','GO Actual'];
+    const blDataRows = Object.entries(state.baseline)
+      .filter(([k]) => k.startsWith('CR-'))
+      .map(([cr,b]) => [cr,b.status||'',b.desc||'',b.mod||'',b.md||'',b.mon||'',b.note||'',b.issue||'',b.ref||'',b.pic||'',
+        b.dsP||'',b.dsA||'',b.devP||'',b.devA||'',b.utP||'',b.utA||'',b.uatP||'',b.uatA||'',b.goP||'',b.goA||'']);
+    const ws3 = XLSX.utils.aoa_to_sheet([
+      ['_BASELINE_META', 'Saved At: ' + (state.baseline._savedAt || new Date().toISOString())],
+      blHeaders, ...blDataRows
+    ]);
+    ws3['!cols'] = [{wch:14},{wch:18},{wch:40},{wch:10},{wch:8},{wch:10},{wch:36},{wch:14},{wch:26},{wch:18},
+      {wch:11},{wch:11},{wch:11},{wch:11},{wch:11},{wch:11},{wch:11},{wch:11},{wch:11},{wch:11}];
+    XS.utils.book_append_sheet(wb, ws3, '_Baseline');
+  }
+  const wbArray = XS.write(wb, { bookType:'xlsx', type:'array' });
+  return new Blob([wbArray], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+}
+
+function buildStyledSheet(headers, rows, hdrStyle, subHdrStyle) {
+  // Row 1: column headers
+  const ws = {};
+  const R = rows.length + 2; // total rows (title + header + data)
+  const C = headers.length;
+  const enc = XLSX.utils.encode_cell.bind(XLSX.utils);
+
+  const titleStyle = {
+    font:      { bold:true, sz:13, color:{ rgb:'FFFFFF' } },
+    fill:      { fgColor:{ rgb:'1F3864' } },
+    alignment: { horizontal:'center', vertical:'center' }
+  };
+  ws[enc({r:0,c:0})] = { v:'Change Request Kanban — SST GT Implementation (SEKISUI × ABeam)', t:'s', s:titleStyle };
+  for (let c=1; c<C; c++) {
+    ws[enc({r:0,c})] = { v:'', t:'s', s:titleStyle };
+  }
+  ws['!merges'] = [{ s:{r:0,c:0}, e:{r:0,c:C-1} }];
+
+  headers.forEach((h, c) => {
+    ws[enc({r:1,c})] = makeCell(h, subHdrStyle);
+  });
+
+  rows.forEach((row, ri) => {
+    row.forEach((cell, c) => {
+      ws[enc({r:ri+2, c})] = cell;
+    });
+  });
+
+  ws['!ref'] = XLSX.utils.encode_range({ s:{r:0,c:0}, e:{r:R+1,c:C-1} });
+  ws['!freeze'] = { xSplit:0, ySplit:2 }; // freeze title + header rows
+  return ws;
+}
+
+function openExcelFile() {
+  document.getElementById('fi').click();
+}
+
+function processExcelData(ab) {
+  try {
+    parseExcel(ab);
+    render();
+    document.getElementById('upload-screen').style.display = 'none';
+    document.getElementById('app-screen').style.display    = 'block';
+    setSaveStatus('✓ Opened', 'saved');
+    setTimeout(() => { if (!isDirty) setSaveStatus(''); }, 3000);
+    refreshBaselineUI();
+  } catch(err) { showErr('Error reading file: ' + err.message); }
+}
+
+function handleFile(file) {
+  if (!file?.name.match(/\.xlsx?$/i)) { showErr('Please upload an .xlsx file'); return; }
+  _lastFileName = file.name;
+  const reader = new FileReader();
+  reader.onload = e => processExcelData(e.target.result);
+  reader.readAsArrayBuffer(file);
+}
+
+function showErr(msg) { const e=document.getElementById('upload-err');e.textContent=msg;e.style.display='block'; }
+
+function resetApp() {
+  clearSearch();
+  clearTimeout(_autoSaveTimer);
+  state.active = []; state.prev = []; state.baseline = null;
+  document.getElementById('upload-screen').style.display='flex';
+  document.getElementById('app-screen').style.display='none';
+  document.getElementById('fi').value='';
+  activeFilter='ALL'; allCollapsed=false; isDirty=false; excludeNotApproved=true; _statusFilter=null; colSort={};
+  savedFileHandle = null;
+  setSaveStatus('');
+  if (mdChart)        { mdChart.destroy();        mdChart=null; }
+  if (thresholdChart) { thresholdChart.destroy(); thresholdChart=null; }
+  render();
+}
+
+document.getElementById('fi').addEventListener('change', e => {
+  if (e.target.files[0]) handleFile(e.target.files[0]);
+});
+
+const dz = document.getElementById('drop-zone');
+dz.addEventListener('click', e => { if (e.target === dz || e.target.classList.contains('dz-icon')) document.getElementById('fi').click(); });
+dz.addEventListener('dragover',  e => { e.preventDefault(); dz.classList.add('dragover'); });
+dz.addEventListener('dragleave', e => { if (!dz.contains(e.relatedTarget)) dz.classList.remove('dragover'); });
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('dragover');
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+// ─── REPORT VIEW ─────────────────────────────────────────────────────────────
+function renderReport() {
+  const SG = [
+    {status:'PENDING APPROVAL',icon:'&#9683;',color:'#B45309',hdrBg:'#92400E',rows:['#FFFDF5','#FFFBF0']},
+    {status:'APPROVED',        icon:'&#10003;',color:'#0F766E',hdrBg:'#0F766E',rows:['#F5FDFB','#EDFAF6']},
+    {status:'IN PROGRESS',     icon:'&#8635;', color:'#1D6FA4',hdrBg:'#1B4F72',rows:['#F5FAFF','#EBF5FF']},
+    {status:'COMPLETED',       icon:'&#9733;', color:'#2D8653',hdrBg:'#1A5E38',rows:['#F5FDF8','#EBFAF1']},
+    {status:'REJECTED',        icon:'&#10005;',color:'#C41230',hdrBg:'#8B0000',rows:['#FFF8F8','#FFF0F1']},
+  ];
+  const MB = {FI:'#5B21B6',CO:'#0369A1',PP:'#92400E',MM:'#065F46',IF:'#881337',SD:'#312E81'};
+  const UB = {new:'#D1FAE5',status:'#FEF3C7',detail:'#DBEAFE'};
+  const UL = {new:'New &#x1F4CC;',status:'Updated &#x26A1;',detail:'Changed &#x270F;'};
+  const today = new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  const baseDate = (state.baseline&&state.baseline._savedAt)
+    ? ' since '+new Date(state.baseline._savedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short'})
+    : '';
+  const updCount = state.baseline ? [...state.active,...state.prev].filter(c=>getUpdateInfo(c)).length : 0;
+  const cnt = s => state.active.filter(c=>c.status===s).length;
+
+  let t = '<table style="border-collapse:collapse;font-family:Calibri,Arial,sans-serif;font-size:10pt;width:100%;min-width:700px;">';
+  t += '<colgroup><col style="width:8%"><col style="width:9%"><col style="width:7%"><col style="width:29%"><col style="width:7%"><col style="width:10%"><col style="width:30%"></colgroup>';
+
+  // Title
+  t += `<tr>
+    <td colspan="6" style="background:#1B2B52;color:white;padding:10px 14px;font-size:14pt;font-weight:bold;">SST GT — Change Request Status</td>
+    <td style="background:#1B2B52;color:#aac4e0;padding:10px 14px;text-align:right;font-size:9.5pt;vertical-align:bottom;">${today}</td></tr>`;
+
+  // Summary bar
+  t += `<tr style="background:#2E5D8C;color:white;font-size:9.5pt;">
+    <td colspan="2" style="padding:5px 12px;font-weight:600;">Active: ${state.active.length}</td>
+    <td colspan="3" style="padding:5px 8px;">Pending: ${cnt('PENDING APPROVAL')} &nbsp;&#183;&nbsp; Approved: ${cnt('APPROVED')} &nbsp;&#183;&nbsp; In Progress: ${cnt('IN PROGRESS')} &nbsp;&#183;&nbsp; Completed: ${cnt('COMPLETED')}</td>
+    <td colspan="2" style="padding:5px 12px;text-align:right;">${updCount>0?'&#x26A1; '+updCount+' changes'+baseDate:''}</td></tr>`;
+
+  // Column headers
+  t += `<tr style="background:#2E74B5;color:white;font-size:10pt;">
+    <th style="padding:6px 10px;text-align:center;border:1px solid #1B2B52;">Module</th>
+    <th style="padding:6px 10px;text-align:left;border:1px solid #1B2B52;">CR #</th>
+    <th style="padding:6px 10px;text-align:center;border:1px solid #1B2B52;">Issue #</th>
+    <th style="padding:6px 10px;text-align:left;border:1px solid #1B2B52;">Description</th>
+    <th style="padding:6px 10px;text-align:center;border:1px solid #1B2B52;">MD</th>
+    <th style="padding:6px 10px;text-align:center;border:1px solid #1B2B52;">Change</th>
+    <th style="padding:6px 10px;text-align:left;border:1px solid #1B2B52;">Notes / Remarks</th></tr>`;
+
+  SG.forEach(({status,icon,color,hdrBg,rows})=>{
+    const crs = state.active.filter(c=>c.status===status);
+    if (!crs.length) return;
+    t+=`<tr><td colspan="7" style="background:${hdrBg};color:white;padding:5px 12px;font-weight:700;font-size:10.5pt;">${icon} ${status} <span style="font-weight:400;opacity:.8;font-size:9.5pt;">(${crs.length})</span></td></tr>`;
+    crs.forEach((c,i)=>{
+      const info=getUpdateInfo(c);
+      const bg=info?UB[info.type]||'#FFFDE7':rows[i%2];
+      const lbl=info?`<span style="background:${color};color:white;border-radius:3px;padding:1px 5px;font-size:8.5pt;font-weight:700;white-space:nowrap;">${UL[info.type]||'&#x26A1;'}</span>`:'<span style="color:#bbb;font-size:9pt;">&mdash;</span>';
+      const mb=MB[c.mod]||'#555';
+      const md=(c.md&&c.md!=='N/A'&&c.md!=='')?c.md+(c.mon&&c.mon!=='N/A'?' / '+c.mon:''):(c.md||'—');
+      t+=`<tr style="background:${bg};">
+        <td style="padding:5px 10px;text-align:center;border:1px solid #e4e6ea;"><span style="background:${mb};color:white;border-radius:3px;padding:1px 7px;font-size:9pt;font-weight:700;">${c.mod||'?'}</span></td>
+        <td style="padding:5px 10px;font-weight:700;color:#1B2B52;border:1px solid #e4e6ea;white-space:nowrap;">${c.cr}</td>
+        <td style="padding:5px 10px;text-align:center;border:1px solid #e4e6ea;color:#6B7280;font-size:9pt;">${c.issue ? 'Issue-'+c.issue : '<span style=\'color:#ccc\'>&mdash;</span>'}</td>
+        <td style="padding:5px 10px;border:1px solid #e4e6ea;">${(c.desc||'').replace(/</g,'&lt;')}</td>
+        <td style="padding:5px 10px;text-align:center;border:1px solid #e4e6ea;font-size:9.5pt;">${md}</td>
+        <td style="padding:5px 10px;text-align:center;border:1px solid #e4e6ea;">${lbl}</td>
+        <td style="padding:5px 10px;border:1px solid #e4e6ea;font-size:9.5pt;color:#374151;">${(c.note||'').replace(/</g,'&lt;')}</td></tr>`;
+    });
+  });
+
+  if (state.prev.length) {
+    t+=`<tr><td colspan="7" style="background:#1F7A6E;color:white;padding:5px 12px;font-weight:700;font-size:10.5pt;">&#x229E; PREVIOUSLY COMPLETED <span style="font-weight:400;opacity:.8;font-size:9.5pt;">(${state.prev.length})</span></td></tr>`;
+    state.prev.forEach((c,i)=>{
+      const mb=MB[c.mod]||'#555';
+      t+=`<tr style="background:${i%2===0?'#F0FAF8':'#E8F6F2'};color:#444;">
+        <td style="padding:4px 10px;text-align:center;border:1px solid #d0e8e2;"><span style="background:${mb};color:white;border-radius:3px;padding:1px 7px;font-size:9pt;font-weight:700;">${c.mod||'?'}</span></td>
+        <td style="padding:4px 10px;font-weight:600;color:#1B2B52;border:1px solid #d0e8e2;white-space:nowrap;">${c.cr}</td>
+        <td style="padding:4px 10px;text-align:center;border:1px solid #d0e8e2;color:#9CA3AF;font-size:9pt;">${c.issue ? 'Issue-'+c.issue : '<span style=\'color:#ccc\'>&mdash;</span>'}</td>
+        <td style="padding:4px 10px;border:1px solid #d0e8e2;">${(c.desc||'').replace(/</g,'&lt;')}</td>
+        <td style="padding:4px 10px;text-align:center;border:1px solid #d0e8e2;font-size:9.5pt;">${c.md&&c.md!=='N/A'?c.md:'—'}</td>
+        <td style="padding:4px 10px;text-align:center;border:1px solid #d0e8e2;"><span style="color:#bbb;">&mdash;</span></td>
+        <td style="padding:4px 10px;border:1px solid #d0e8e2;font-size:9.5pt;color:#6B7280;">${(c.note||'').replace(/</g,'&lt;')}</td></tr>`;
+    });
+  }
+  t+='</table>';
+  const wrap=document.getElementById('report-table-wrap');
+  if (wrap) wrap.innerHTML=t;
+}
+
+async function copyReportTable() {
+  const wrap=document.getElementById('report-table-wrap');
+  if (!wrap) return;
+  const hint=document.getElementById('report-copy-hint');
+  function showHint(){ if(hint){hint.style.display='';setTimeout(()=>{hint.style.display='none';},3000);} }
+  try {
+    const blob=new Blob(['<meta charset="utf-8">'+wrap.innerHTML],{type:'text/html'});
+    const tb=new Blob([wrap.innerText],{type:'text/plain'});
+    await navigator.clipboard.write([new ClipboardItem({'text/html':blob,'text/plain':tb})]);
+    showHint(); toast('&#x2713; Copied! Paste into PowerPoint with Ctrl+V','#2D8653');
+  } catch(e) {
+    try {
+      const r=document.createRange(); r.selectNode(wrap);
+      window.getSelection().removeAllRanges(); window.getSelection().addRange(r);
+      document.execCommand('copy'); window.getSelection().removeAllRanges();
+      showHint(); toast('&#x2713; Copied! Paste into PowerPoint with Ctrl+V','#2D8653');
+    } catch(e2) {
+      const r=document.createRange(); r.selectNode(wrap);
+      window.getSelection().removeAllRanges(); window.getSelection().addRange(r);
+      toast('Table selected — press Ctrl+C then paste into PowerPoint','#B45309');
+    }
+  }
+}
+
+</script>
+</body>
+</html>
