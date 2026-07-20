@@ -55,6 +55,12 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:#F0F4FA;color:#1F2937;
 .save-status.saving{color:#fcd34d;}
 .save-status.saved{color:#6ee7b7;}
 .save-status.error{color:#fca5a5;}
+.cloud-badge{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 10px;border-radius:12px;border:1px solid rgba(255,255,255,.2);transition:all .3s;cursor:default;}
+.cloud-badge.cb-idle{color:rgba(255,255,255,.45);border-color:transparent;}
+.cloud-badge.cb-saving{color:#fcd34d;border-color:rgba(252,211,77,.4);animation:pulse .8s ease-in-out infinite alternate;}
+.cloud-badge.cb-ok{color:#6ee7b7;border-color:rgba(110,231,183,.4);}
+.cloud-badge.cb-err{color:#fca5a5;border-color:rgba(252,165,165,.4);}
+@keyframes pulse{from{opacity:.6}to{opacity:1}}
 #app-nav{display:flex;background:white;border-bottom:2px solid var(--div);padding:0 18px;position:sticky;top:47px;z-index:190;}
 .nav-btn{background:none;border:none;border-bottom:3px solid transparent;margin-bottom:-2px;padding:10px 18px;font-size:13px;font-family:inherit;cursor:pointer;color:var(--g59);font-weight:500;transition:.15s;display:flex;align-items:center;gap:6px;}
 .nav-btn:hover{color:var(--navy);}
@@ -390,7 +396,7 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:#F0F4FA;color:#1F2937;
   </div>
   <div id="drop-zone">
     <div class="dz-icon">📊</div>
-    <h2>Open your Excel file</h2>
+    <h2>Connect to Cloud (or open local file)</h2>
     <p>Changes auto-save back to the same file — or drag &amp; drop</p>
     <button class="btn-primary" onclick="event.stopPropagation();openExcelFile()">Open Excel File</button>
     <input type="file" id="fi" accept=".xlsx,.xls" style="display:none">
@@ -408,6 +414,7 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:#F0F4FA;color:#1F2937;
       <h1>Change Request Kanban Board</h1>
     </div>
     <div class="hdr-btns">
+      <span id="cloud-badge" class="cloud-badge cb-idle" title="Azure cloud sync status">☁ –</span>
       <span id="save-status" class="save-status"></span>
       <button id="btn-download" class="btn-h teal btn-clean" onclick="downloadExcel()" title="Download Excel (no unsaved changes)">💾 Download Excel</button>
       <button class="btn-h" onclick="window.print()">🖨 Print / PDF</button>
@@ -712,6 +719,7 @@ const PHASE_LABEL  = { IIT:'Apr - IIT', EIT:'May - EIT', ST:'Jun - ST', UAT:'Jul
 let activeFilter      = 'ALL';
 let allCollapsed      = false;
 let isDirty           = false;
+const AZURE_SAS_URL = 'https://kanbanstoragesst.blob.core.windows.net/kanban-data/KANBAN%20DB.XLS?sp=racwdti&st=2026-07-20T08:45:31Z&se=3000-07-20T17:00:31Z&sv=2026-02-06&sr=b&sig=zco3KU8dmj9VVXCD6EVnhTF09oGDMtYuEXVOtCSQKqg%3D';
 let lastDropped       = null;
 let mdChart           = null;
 let thresholdChart    = null;
@@ -2073,11 +2081,67 @@ function makeCell(v, style) {
   return { v, t, s: style };
 }
 
+/* ── Azure cloud helpers ────────────────────────────────────────────── */
+function setCloudBadge(msg, type) {
+  const el = document.getElementById('cloud-badge');
+  if (!el) return;
+  el.textContent = '☁ ' + msg;
+  el.className = 'cloud-badge cb-' + type;
+}
+
+async function loadFromAzure() {
+  setCloudBadge('Loading…', 'saving');
+  try {
+    const res = await fetch(AZURE_SAS_URL, { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const ab = await res.arrayBuffer();
+    processExcelData(ab);
+    _lastFileName = 'KANBAN DB.xlsx';
+    setCloudBadge('Connected', 'ok');
+    setTimeout(() => setCloudBadge('Synced', 'ok'), 100);
+  } catch(e) {
+    console.warn('Azure load failed, falling back to upload screen:', e);
+    setCloudBadge('Offline', 'err');
+    document.getElementById('upload-screen').style.display = 'flex';
+  }
+}
+
 async function autoSaveExcel() {
-  // Download-only save — no direct file writes (prevents corruption when Excel is open)
-  const btn = document.getElementById('btn-download');
-  if (btn) { btn.classList.remove('btn-clean'); btn.title = 'Download Excel (unsaved changes)'; }
-  setSaveStatus('● Unsaved — click 💾 Download Excel', 'saving');
+  setCloudBadge('Saving…', 'saving');
+  setSaveStatus('☁ Syncing…', 'saving');
+  try {
+    const blob = await buildExcelBlob();
+    // Integrity check
+    const ab    = await blob.arrayBuffer();
+    const bytes = new Uint8Array(ab);
+    const isZip = bytes[0]===0x50 && bytes[1]===0x4B;
+    const minSz = (state.active.length + state.prev.length) * 200;
+    if (!isZip || blob.size < minSz) {
+      setCloudBadge('Save aborted', 'err');
+      setSaveStatus('⚠ File looks invalid', 'error');
+      return;
+    }
+    // Upload to Azure Blob Storage
+    const res = await fetch(AZURE_SAS_URL, {
+      method: 'PUT',
+      headers: {
+        'x-ms-blob-type': 'BlockBlob',
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      },
+      body: blob
+    });
+    if (!res.ok) throw new Error('PUT failed: HTTP ' + res.status);
+    clearDirty();
+    setCloudBadge('Saved ✓', 'ok');
+    setTimeout(() => setCloudBadge('Synced', 'ok'), 2000);
+  } catch(e) {
+    console.error('Azure save error:', e);
+    setCloudBadge('Sync failed', 'err');
+    setSaveStatus('⚠ Cloud sync failed — use 💾 Download as backup', 'error');
+    // Fallback: show download button
+    const btn = document.getElementById('btn-download');
+    if (btn) { btn.classList.remove('btn-clean'); btn.title = 'Cloud sync failed — download to save'; }
+  }
 }
 
 async function downloadExcel() {
@@ -2379,6 +2443,9 @@ dz.addEventListener('drop', e => {
   e.preventDefault(); dz.classList.remove('dragover');
   if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
 });
+// ─── AUTO-LOAD FROM AZURE ON START ──────────────────────────────────────────
+loadFromAzure();
+
 // ─── REPORT VIEW ─────────────────────────────────────────────────────────────
 function renderReport() {
   const SG = [
