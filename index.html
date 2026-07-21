@@ -1149,57 +1149,21 @@ function parseExcel(ab) {
   state.prev.length = 0;
   const seen = new Set();
   const sh1 = wb.Sheets['Active CRs'] || wb.Sheets[wb.SheetNames[0]];
-  // Read with header:1 first to find column names, then use name-based lookup
-  const allRows = XLSX.utils.sheet_to_json(sh1, { header:1, defval:'' });
-  // First row with 'CR' or 'CR ID' etc is the header row
-  let headerIdx = 0;
-  for (let i = 0; i < Math.min(5, allRows.length); i++) {
-    if (allRows[i].some(c => /^cr[\s-]?id?$/i.test(String(c).trim()) || /^cr$/i.test(String(c).trim()))) {
-      headerIdx = i; break;
-    }
-  }
-  const hdr = allRows[headerIdx].map(c => String(c).trim().toLowerCase());
-  // Column name → field mapping (flexible, case-insensitive)
-  function col(row, ...names) {
-    for (const n of names) {
-      const idx = hdr.findIndex(h => h === n.toLowerCase() || h.replace(/[\s\-_]/g,'') === n.toLowerCase().replace(/[\s\-_]/g,''));
-      if (idx >= 0) return tr(row[idx]);
-    }
-    return '';
-  }
-  allRows.slice(headerIdx + 1).forEach(r => {
-    const cr = col(r, 'cr', 'cr id', 'crid', 'cr-id');
+  XLSX.utils.sheet_to_json(sh1, { header:1, defval:'' }).forEach(r => {
+    const cr = tr(r[0]);
     if (!cr.startsWith('CR-') || seen.has(cr)) return;
     seen.add(cr);
-    const rawSt = col(r, 'status').toUpperCase();
-    const base = {
-      cr,
-      desc:    col(r, 'description', 'desc', 'cr description'),
-      mod:     col(r, 'module', 'mod').toUpperCase(),
-      md:      col(r, 'md', 'man days', 'mandays', 'man-days'),
-      mon:     col(r, 'month', 'mon', 'go live month').toUpperCase(),
-      creator: col(r, 'creator', 'requested by', 'requestor'),
-      pic:     col(r, 'pic', 'person in charge', 'abeam pic'),
-      url:     col(r, 'url', 'link', 'reference url'),
-      note:    col(r, 'note', 'notes', 'remark', 'remarks'),
-      issue:   col(r, 'issue', 'issues', 'open issue'),
-      ref:     col(r, 'ref', 'reference', 'ref cr', 'related cr'),
-      dsP:     col(r, 'ds plan', 'ds planned', 'ds p', 'dsp'),
-      dsA:     col(r, 'ds actual', 'ds a', 'dsa'),
-      devP:    col(r, 'dev plan', 'dev planned', 'dev p', 'devp'),
-      devA:    col(r, 'dev actual', 'dev a', 'deva'),
-      utP:     col(r, 'ut plan', 'ut planned', 'ut p', 'utp'),
-      utA:     col(r, 'ut actual', 'ut a', 'uta'),
-      uatP:    col(r, 'uat plan', 'uat planned', 'uat p', 'uatp'),
-      uatA:    col(r, 'uat actual', 'uat a', 'uata'),
-      goP:     col(r, 'go plan', 'go-live plan', 'go p', 'gop', 'go live plan'),
-      goA:     col(r, 'go actual', 'go-live actual', 'go a', 'goa', 'go live actual'),
-      log:[]
-    };
+    const rawSt = tr(r[2]).toUpperCase();
+    const base = { cr, desc:tr(r[1]), mod:tr(r[3]).toUpperCase(), md:tr(r[4]),
+      mon:tr(r[5]).toUpperCase(), creator:tr(r[6]), pic:tr(r[7]), url:tr(r[8]),
+      note:tr(r[9]), issue:tr(r[10]), ref:tr(r[11]),
+      dsP:tr(r[12]),dsA:tr(r[13]),devP:tr(r[14]),devA:tr(r[15]),
+      utP:tr(r[16]),utA:tr(r[17]),uatP:tr(r[18]),uatA:tr(r[19]),
+      goP:tr(r[20]),goA:tr(r[21]), log:[], _collapsed:false };
     if (rawSt === 'PREV COMPLETED' || rawSt === 'PREVIOUSLY COMPLETED') {
       state.prev.push(base);
     } else {
-      state.active.push({ ...base, status:normalizeStatus(rawSt), _collapsed:false });
+      state.active.push({ ...base, status:normalizeStatus(r[2]) });
     }
   });
   // Read CR Timeline sheet and populate card.log arrays
