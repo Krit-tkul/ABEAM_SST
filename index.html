@@ -221,6 +221,20 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:#F0F4FA;color:#1F2937;
 .modal-btn.danger:hover{background:#a00f27;border-color:#a00f27;}
 .modal-btn.primary{background:var(--blue);color:white;border-color:var(--blue);}
 .modal-btn.primary:hover{background:var(--navy);border-color:var(--navy);}
+/* ── View Mode ─────────────────────────────── */
+body.view-mode .add-card-btn,body.view-mode .add-card-form,
+body.view-mode .card-del,body.view-mode .btn-h.teal,
+body.view-mode #btn-new-cr,body.view-mode #btn-upload-new{display:none!important;}
+body.view-mode .card{cursor:default!important;}
+body.view-mode .card-hdr-txt{cursor:default!important;pointer-events:none;}
+body.view-mode .card-note{pointer-events:none;}
+body.view-mode .bdg-edit{pointer-events:none;opacity:.5;}
+body.view-mode .badge.click{pointer-events:none;cursor:default;}
+body.view-mode .detail-in,body.view-mode .detail-se,body.view-mode .detail-ta{pointer-events:none;background:#f7f7f7;}
+body.view-mode .detail-open-btn{pointer-events:none;opacity:.5;}
+.mode-badge{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;border:1px solid rgba(255,255,255,.25);}
+.mode-badge.mb-view{color:#fcd34d;border-color:rgba(252,211,77,.4);}
+.mode-badge.mb-edit{color:#6ee7b7;border-color:rgba(110,231,183,.4);}
 @media print{
   @page{size:A3 landscape;margin:10mm;}
   body{background:white!important;min-width:0;font-size:11px;}
@@ -389,6 +403,61 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:#F0F4FA;color:#1F2937;
 <body>
 
 <!-- UPLOAD -->
+<!-- ── MODE SELECTION SCREEN ─────────────────────────────────── -->
+<div id="mode-screen" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:40px;background:#EEF2F7;">
+  <div style="text-align:center;max-width:420px;width:100%;">
+    <div style="font-size:48px;margin-bottom:12px;">📋</div>
+    <h2 style="color:#1B2B52;font-size:22px;font-weight:700;margin-bottom:4px;">SST GT – CR Kanban</h2>
+    <p style="color:#6B7280;font-size:12px;margin-bottom:26px;">SEKISUI × ABeam Consulting</p>
+    <div style="display:flex;gap:12px;">
+      <button onclick="enterViewMode()" style="flex:1;padding:14px 12px;background:white;border:2px solid #D1D9E6;border-radius:10px;cursor:pointer;font-family:inherit;transition:.15s;" onmouseover="this.style.borderColor='#1D6FA4'" onmouseout="this.style.borderColor='#D1D9E6'">
+        <div style="font-size:26px;margin-bottom:5px;">👁</div>
+        <div style="font-weight:700;color:#1B2B52;font-size:13px;">View Mode</div>
+        <div style="font-size:10px;color:#6B7280;margin-top:2px;">Browse only, no edits</div>
+      </button>
+      <button onclick="showPasswordModal()" style="flex:1;padding:14px 12px;background:#1B2B52;border:2px solid #1B2B52;border-radius:10px;cursor:pointer;font-family:inherit;transition:.15s;color:white;" onmouseover="this.style.background='#1D6FA4';this.style.borderColor='#1D6FA4'" onmouseout="this.style.background='#1B2B52';this.style.borderColor='#1B2B52'">
+        <div style="font-size:26px;margin-bottom:5px;">✏️</div>
+        <div style="font-weight:700;font-size:13px;">Edit Mode</div>
+        <div style="font-size:10px;opacity:.7;margin-top:2px;">Password required</div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── PASSWORD MODAL ───────────────────────────────────────────────────────── -->
+<div id="pwd-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:9800;align-items:center;justify-content:center;backdrop-filter:blur(2px);">
+  <div style="background:white;border-radius:14px;padding:26px 28px 22px;max-width:320px;width:90%;box-shadow:0 12px 40px rgba(0,0,0,.22);">
+    <div style="font-size:28px;margin-bottom:10px;">🔐</div>
+    <div style="font-size:15px;font-weight:700;color:#1B2B52;margin-bottom:14px;">Edit Mode Password</div>
+    <input type="password" id="pwd-input" placeholder="Enter password…" autocomplete="current-password" style="width:100%;border:1px solid #D1D9E6;border-radius:6px;padding:8px 10px;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box;" onkeydown="if(event.key==='Enter')checkPwd()">
+    <div id="pwd-error" style="display:none;font-size:11px;margin-top:6px;font-weight:600;min-height:16px;"></div>
+    <div style="display:flex;gap:6px;margin-top:16px;justify-content:flex-end;">
+      <button onclick="closePasswordModal()" style="padding:7px 13px;border:1px solid #D1D9E6;border-radius:6px;background:#EEF2F7;font-family:inherit;cursor:pointer;font-size:12px;">Cancel</button>
+      <button onclick="showPwdClue()" style="padding:7px 13px;border:1px solid #7C3AED;border-radius:6px;background:white;color:#7C3AED;font-family:inherit;cursor:pointer;font-size:12px;font-weight:600;">💡 Clue</button>
+      <button onclick="checkPwd()" style="padding:7px 16px;border:1px solid #1D6FA4;border-radius:6px;background:#1D6FA4;color:white;font-family:inherit;cursor:pointer;font-size:12px;font-weight:700;">Enter →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── CHANGE PASSWORD MODAL ─────────────────────────────────────────────────── -->
+<div id="chgpwd-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:9800;align-items:center;justify-content:center;backdrop-filter:blur(2px);">
+  <div style="background:white;border-radius:14px;padding:26px 28px 22px;max-width:320px;width:90%;box-shadow:0 12px 40px rgba(0,0,0,.22);">
+    <div style="font-size:28px;margin-bottom:10px;">🔑</div>
+    <div style="font-size:15px;font-weight:700;color:#1B2B52;margin-bottom:14px;">Change Password</div>
+    <div style="margin-bottom:8px;"><label style="font-size:10px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.04em;">Current Password</label>
+      <input type="password" id="chg-cur" placeholder="Current password…" style="width:100%;border:1px solid #D1D9E6;border-radius:5px;padding:7px 9px;font-size:12px;font-family:inherit;outline:none;box-sizing:border-box;margin-top:3px;"></div>
+    <div style="margin-bottom:8px;"><label style="font-size:10px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.04em;">New Password</label>
+      <input type="password" id="chg-new" placeholder="New password…" style="width:100%;border:1px solid #D1D9E6;border-radius:5px;padding:7px 9px;font-size:12px;font-family:inherit;outline:none;box-sizing:border-box;margin-top:3px;"></div>
+    <div style="margin-bottom:4px;"><label style="font-size:10px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.04em;">Confirm New Password</label>
+      <input type="password" id="chg-con" placeholder="Confirm password…" style="width:100%;border:1px solid #D1D9E6;border-radius:5px;padding:7px 9px;font-size:12px;font-family:inherit;outline:none;box-sizing:border-box;margin-top:3px;"></div>
+    <div id="chg-err" style="display:none;font-size:11px;margin-top:6px;font-weight:600;min-height:16px;"></div>
+    <div style="display:flex;gap:6px;margin-top:16px;justify-content:flex-end;">
+      <button onclick="closeChgPwdModal()" style="padding:7px 13px;border:1px solid #D1D9E6;border-radius:6px;background:#EEF2F7;font-family:inherit;cursor:pointer;font-size:12px;">Cancel</button>
+      <button onclick="saveNewPwd()" style="padding:7px 16px;border:1px solid #1D6FA4;border-radius:6px;background:#1D6FA4;color:white;font-family:inherit;cursor:pointer;font-size:12px;font-weight:700;">Save Password</button>
+    </div>
+  </div>
+</div>
+
 <div id="upload-screen">
   <div style="text-align:center">
     <div style="font-size:25px;font-weight:700;color:var(--navy)">SST GT — CR Kanban Board</div>
@@ -414,6 +483,8 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:#F0F4FA;color:#1F2937;
       <h1>Change Request Kanban Board</h1>
     </div>
     <div class="hdr-btns">
+      <span id="mode-badge" class="mode-badge mb-view" style="display:none">👁 View</span>
+      <button id="btn-chgpwd" class="btn-h" onclick="openChgPwdModal()" title="Change password" style="display:none">🔑 Change Pwd</button>
       <span id="cloud-badge" class="cloud-badge cb-idle" title="Azure cloud sync status">☁ –</span>
       <span id="save-status" class="save-status"></span>
       <button id="btn-download" class="btn-h teal btn-clean" onclick="downloadExcel()" title="Download Excel (no unsaved changes)">💾 Download Excel</button>
@@ -720,6 +791,113 @@ let activeFilter      = 'ALL';
 let allCollapsed      = false;
 let isDirty           = false;
 const AZURE_SAS_URL = 'https://kanbanstoragesst.blob.core.windows.net/kanban-data/KANBAN%20DB.XLS?sp=racwdti&st=2026-07-20T08:45:31Z&se=3000-07-20T17:00:31Z&sv=2026-02-06&sr=b&sig=zco3KU8dmj9VVXCD6EVnhTF09oGDMtYuEXVOtCSQKqg%3D';
+
+  // ─── MODE & PASSWORD ────────────────────────────────────────────────────────
+  let appMode = 'view';
+  const DEFAULT_PWD = 'Kritical';
+  function getStoredPwd() { return localStorage.getItem('kanban_pwd') || DEFAULT_PWD; }
+
+  function showModeScreen() {
+    document.getElementById('mode-screen').style.display = 'flex';
+    document.getElementById('upload-screen').style.display = 'none';
+    document.getElementById('app-screen').style.display = 'none';
+  }
+
+  function enterViewMode() {
+    appMode = 'view';
+    document.getElementById('mode-screen').style.display = 'none';
+    document.body.classList.add('view-mode');
+    _updateModeBadge();
+    loadFromAzure();
+  }
+
+  function showPasswordModal() {
+    document.getElementById('pwd-modal').style.display = 'flex';
+    setTimeout(() => { const i=document.getElementById('pwd-input'); if(i)i.focus(); }, 60);
+  }
+
+  function closePasswordModal() {
+    document.getElementById('pwd-modal').style.display = 'none';
+    document.getElementById('pwd-input').value = '';
+    const e = document.getElementById('pwd-error');
+    e.style.display = 'none'; e.textContent = '';
+  }
+
+  function showPwdClue() {
+    const e = document.getElementById('pwd-error');
+    e.style.display = 'block'; e.style.color = '#7C3AED';
+    e.textContent = '💡 Clue: Critical';
+  }
+
+  function checkPwd() {
+    const val = document.getElementById('pwd-input').value;
+    if (val === getStoredPwd()) {
+      appMode = 'edit';
+      closePasswordModal();
+      document.getElementById('mode-screen').style.display = 'none';
+      document.body.classList.remove('view-mode');
+      _updateModeBadge();
+      loadFromAzure();
+    } else {
+      const e = document.getElementById('pwd-error');
+      e.style.display = 'block'; e.style.color = '#C41230';
+      e.textContent = '❌ Wrong password. Try again.';
+      document.getElementById('pwd-input').select();
+    }
+  }
+
+  function _updateModeBadge() {
+    const b = document.getElementById('mode-badge');
+    const p = document.getElementById('btn-chgpwd');
+    if (!b) return;
+    b.style.display = 'flex';
+    if (appMode === 'edit') {
+      b.textContent = '✏️ Edit'; b.className = 'mode-badge mb-edit';
+      if (p) p.style.display = '';
+    } else {
+      b.textContent = '👁 View'; b.className = 'mode-badge mb-view';
+      if (p) p.style.display = 'none';
+    }
+  }
+
+  function openChgPwdModal() {
+    document.getElementById('chgpwd-modal').style.display = 'flex';
+    setTimeout(() => { const i=document.getElementById('chg-cur'); if(i)i.focus(); }, 60);
+  }
+
+  function closeChgPwdModal() {
+    document.getElementById('chgpwd-modal').style.display = 'none';
+    ['chg-cur','chg-new','chg-con'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    const e = document.getElementById('chg-err');
+    e.style.display = 'none'; e.textContent = '';
+  }
+
+  function saveNewPwd() {
+    const cur = document.getElementById('chg-cur').value;
+    const nw  = document.getElementById('chg-new').value;
+    const con = document.getElementById('chg-con').value;
+    const e   = document.getElementById('chg-err');
+    if (cur !== getStoredPwd()) {
+      e.style.display='block'; e.style.color='#C41230';
+      e.textContent='❌ Current password is incorrect.'; return;
+    }
+    if (!nw || nw.length < 4) {
+      e.style.display='block'; e.style.color='#C41230';
+      e.textContent='❌ New password must be at least 4 characters.'; return;
+    }
+    if (nw !== con) {
+      e.style.display='block'; e.style.color='#C41230';
+      e.textContent='❌ Passwords do not match.'; return;
+    }
+    localStorage.setItem('kanban_pwd', nw);
+    closeChgPwdModal();
+    showToast('✅ Password changed!');
+  }
+
+  // ─── VERSION CONFLICT TRACKING (Option B) ──────────────────────────────────
+  let _azureETag = '';
+  let _azureLastMod = '';
+
 let lastDropped       = null;
 let mdChart           = null;
 let thresholdChart    = null;
@@ -1171,6 +1349,7 @@ function makeCard(card) {
   if (card.cr === lastDropped) wrap.classList.add('just-dropped');
 
   wrap.addEventListener('dragstart', e => {
+    if (appMode !== 'edit') { e.preventDefault(); return; }
     e.dataTransfer.setData('text/plain', card.cr);
     e.dataTransfer.effectAllowed = 'move';
     setTimeout(() => wrap.classList.add('dragging'), 0);
@@ -2094,9 +2273,12 @@ async function loadFromAzure() {
   try {
     const res = await fetch(AZURE_SAS_URL, { cache: 'no-store' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
+    _azureETag = res.headers.get('ETag') || '';
+    _azureLastMod = res.headers.get('Last-Modified') || '';
     const ab = await res.arrayBuffer();
     processExcelData(ab);
     _lastFileName = 'KANBAN DB.xlsx';
+    _updateModeBadge();
     setCloudBadge('Connected', 'ok');
     setTimeout(() => setCloudBadge('Synced', 'ok'), 100);
   } catch(e) {
@@ -2107,6 +2289,28 @@ async function loadFromAzure() {
 }
 
 async function autoSaveExcel() {
+  // Guard: view mode cannot save
+  if (appMode !== 'edit') return;
+  // ─── Option B: Version conflict check ─────────────────────────────────────
+  if (_azureETag) {
+    try {
+      const headRes = await fetch(AZURE_SAS_URL, { method: 'HEAD', cache: 'no-store' });
+      const curETag = headRes.headers.get('ETag') || '';
+      const curMod  = headRes.headers.get('Last-Modified') || '';
+      if (curETag && curETag !== _azureETag) {
+        const proceed = confirm(
+          '⚠️ Conflict detected!\n\n' +
+          'The board was updated by someone else since you loaded it.\n\n' +
+          'Click OK to overwrite their changes, or Cancel to refresh first.'
+        );
+        if (!proceed) {
+          setCloudBadge('Conflict!', 'err');
+          setSaveStatus('⚠ Refresh to load latest version', 'error');
+          return;
+        }
+      }
+    } catch(e) { console.warn('Version check skipped:', e); }
+  }
   setCloudBadge('Saving…', 'saving');
   setSaveStatus('☁ Syncing…', 'saving');
   try {
@@ -2131,6 +2335,7 @@ async function autoSaveExcel() {
       body: blob
     });
     if (!res.ok) throw new Error('PUT failed: HTTP ' + res.status);
+    _azureETag = res.headers.get('ETag') || _azureETag;
     clearDirty();
     setCloudBadge('Saved ✓', 'ok');
     setTimeout(() => setCloudBadge('Synced', 'ok'), 2000);
@@ -2444,7 +2649,7 @@ dz.addEventListener('drop', e => {
   if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
 });
 // ─── AUTO-LOAD FROM AZURE ON START ──────────────────────────────────────────
-loadFromAzure();
+showModeScreen();
 
 // ─── REPORT VIEW ─────────────────────────────────────────────────────────────
 function renderReport() {
