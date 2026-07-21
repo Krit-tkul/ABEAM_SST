@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SST GT — CR Kanban Board</title>
+<title>CR Kanban Board</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -160,9 +160,9 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:#F0F4FA;color:#1F2937;
 .badge{border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;color:white;white-space:nowrap;display:inline-block;}
 .badge.click{cursor:pointer;}
 .badge.click:hover{opacity:.82;box-shadow:0 0 0 2px rgba(0,0,0,.18);}
-.mod-FI{background:var(--fi)!important;}.mod-CO{background:var(--co)!important;}
-.mod-PP{background:var(--pp)!important;}.mod-MM{background:var(--mm)!important;}
-.mod-IF{background:var(--if)!important;}.mod-SD{background:var(--teal)!important;}
+/* Module badge colors injected dynamically via injectModuleCSS() */
+.btn-cog{background:none;border:1.5px solid rgba(255,255,255,.35);border-radius:6px;color:rgba(255,255,255,.85);font-size:14px;cursor:pointer;padding:2px 6px;line-height:1.2;transition:.15s;display:none;}
+.btn-cog:hover{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.65);color:white;}
 .mod-X{background:#808080!important;}
 .bdg-edit{display:flex;align-items:center;gap:2px;background:#fffde7;border:1px solid #f0c040;border-radius:5px;padding:2px 4px;}
 .bdg-in{border:none;background:transparent;font-size:11px;font-family:inherit;outline:none;padding:0 1px;color:#333;min-width:0;}
@@ -390,7 +390,7 @@ body.view-mode .today-btn{display:none;}
   <div style="text-align:center;max-width:460px;width:100%;">
     <div style="font-size:52px;margin-bottom:14px;filter:drop-shadow(0 4px 12px rgba(0,0,0,.3));">📋</div>
     <h2 style="color:white;font-size:24px;font-weight:800;margin-bottom:4px;letter-spacing:-.3px;">CR Kanban Board</h2>
-    <p style="color:rgba(255,255,255,.6);font-size:12px;margin-bottom:32px;font-weight:500;">SST GT · SEKISUI × ABeam Consulting</p>
+    <p id="landing-subtitle" style="color:rgba(255,255,255,.6);font-size:12px;margin-bottom:32px;font-weight:500;">SST GT · SEKISUI × ABeam Consulting</p>
     <div style="display:flex;gap:14px;margin-bottom:20px;">
       <button onclick="enterViewMode()" style="flex:1;padding:18px 12px;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.3);border-radius:14px;cursor:pointer;font-family:inherit;transition:.18s;backdrop-filter:blur(8px);" onmouseover="this.style.background='rgba(255,255,255,.22)';this.style.borderColor='rgba(255,255,255,.6)'" onmouseout="this.style.background='rgba(255,255,255,.12)';this.style.borderColor='rgba(255,255,255,.3)'">
         <div style="font-size:30px;margin-bottom:7px;">👁</div>
@@ -444,10 +444,43 @@ body.view-mode .today-btn{display:none;}
   </div>
 </div>
 
+<!-- ── SETTINGS MODAL ────────────────────────────────────────────────────────── -->
+<div id="settings-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9800;align-items:flex-start;justify-content:center;overflow-y:auto;padding:40px 16px;backdrop-filter:blur(4px);">
+  <div style="background:white;border-radius:16px;padding:28px 30px 24px;max-width:480px;width:100%;box-shadow:0 16px 48px rgba(0,0,0,.28);margin:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div>
+        <div style="font-size:18px;font-weight:800;color:#1B2B52;">⚙ Board Settings</div>
+        <div style="font-size:11px;color:#6B7280;margin-top:2px;">Changes apply immediately and are saved locally</div>
+      </div>
+      <button onclick="closeSettings()" style="background:none;border:none;font-size:20px;color:#9CA3AF;cursor:pointer;padding:0 4px;line-height:1;">✕</button>
+    </div>
+
+    <!-- Project Name -->
+    <div style="margin-bottom:20px;">
+      <label style="font-size:10px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px;">📌 Project Name</label>
+      <input type="text" id="set-project-name" placeholder="e.g. SST GT · SEKISUI × ABeam Consulting" style="width:100%;border:1.5px solid #E2E8F0;border-radius:7px;padding:9px 11px;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box;transition:border-color .15s;" onfocus="this.style.borderColor='#1D6FA4'" onblur="this.style.borderColor='#E2E8F0'">
+      <div style="font-size:10px;color:#9CA3AF;margin-top:4px;">Shown on landing page and used as Excel report header</div>
+    </div>
+
+    <!-- Modules -->
+    <div>
+      <label style="font-size:10px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:8px;">📦 Modules</label>
+      <div id="set-mod-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"></div>
+      <button onclick="addSettingsMod()" style="background:#F1F5F9;border:1.5px dashed #CBD5E1;border-radius:7px;color:#4B5563;font-family:inherit;font-size:12px;font-weight:600;padding:7px 14px;cursor:pointer;width:100%;transition:.15s;" onmouseover="this.style.background='#EFF6FF';this.style.borderColor='#93C5FD'" onmouseout="this.style.background='#F1F5F9';this.style.borderColor='#CBD5E1'">+ Add Module</button>
+    </div>
+
+    <div id="set-err" style="display:none;font-size:11px;color:#C41230;font-weight:600;margin-top:10px;"></div>
+    <div style="display:flex;gap:8px;margin-top:22px;justify-content:flex-end;">
+      <button onclick="closeSettings()" style="padding:8px 15px;border:1.5px solid #E2E8F0;border-radius:8px;background:#F8FAFC;font-family:inherit;cursor:pointer;font-size:12px;font-weight:600;color:#4B5563;">Cancel</button>
+      <button onclick="saveSettings()" style="padding:8px 20px;border:none;border-radius:8px;background:linear-gradient(135deg,#1D6FA4,#1B2B52);color:white;font-family:inherit;cursor:pointer;font-size:13px;font-weight:700;box-shadow:0 2px 8px rgba(29,111,164,.3);">Save Settings</button>
+    </div>
+  </div>
+</div>
+
 <div id="upload-screen">
   <div style="text-align:center">
-    <div style="font-size:25px;font-weight:700;color:var(--navy)">SST GT — CR Kanban Board</div>
-    <div style="color:var(--g7F);margin-top:4px;font-size:13px">SEKISUI × ABeam Consulting</div>
+    <div style="font-size:25px;font-weight:700;color:var(--navy)">CR Kanban Board</div>
+    <div id="upload-subtitle" style="color:var(--g7F);margin-top:4px;font-size:13px">SST GT · SEKISUI × ABeam Consulting</div>
   </div>
   <div id="drop-zone">
     <div class="dz-icon">📊</div>
@@ -464,8 +497,9 @@ body.view-mode .today-btn{display:none;}
 <div id="app-screen">
   <!-- Header -->
   <div id="app-header">
-    <div>
-      <h1 id="app-title">Change Request Kanban Board</h1>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <h1 id="app-title">CR Kanban Board</h1>
+      <button id="btn-settings" class="btn-cog" onclick="openSettings()" title="Board settings" style="display:none">⚙</button>
     </div>
     <div class="hdr-btns">
       <span id="cloud-badge" class="cloud-badge cb-idle" title="Azure cloud sync status">☁ –</span>
@@ -489,12 +523,7 @@ body.view-mode .today-btn{display:none;}
     <div class="t-sep"></div>
     <span class="t-label">Module:</span>
     <button class="mod-chip mod-chip-all active" id="fchip-ALL" onclick="setFilter('ALL')">All</button>
-    <button class="mod-chip mod-FI" id="fchip-FI" onclick="setFilter('FI')">FI</button>
-    <button class="mod-chip mod-CO" id="fchip-CO" onclick="setFilter('CO')">CO</button>
-    <button class="mod-chip mod-PP" id="fchip-PP" onclick="setFilter('PP')">PP</button>
-    <button class="mod-chip mod-MM" id="fchip-MM" onclick="setFilter('MM')">MM</button>
-    <button class="mod-chip mod-IF" id="fchip-IF" onclick="setFilter('IF')">IF</button>
-    <button class="mod-chip mod-SD" id="fchip-SD" onclick="setFilter('SD')">SD</button>
+    <div id="mod-chips-container" style="display:contents"></div>
     <div id="search-box">
       <span style="font-size:13px;color:#888">🔍</span>
       <input id="search-input" type="text" placeholder="Search CR # or keyword…" oninput="onSearchInput()" onkeydown="if(event.key==='Escape')clearSearch()">
@@ -745,9 +774,11 @@ body.view-mode .today-btn{display:none;}
 const state = { active: [], prev: [], baseline: null };
 const STATUS_ORD  = ['PENDING APPROVAL','APPROVED','IN PROGRESS','COMPLETED','REJECTED'];
 const MAIN_STATUS = ['PENDING APPROVAL','APPROVED','IN PROGRESS','COMPLETED'];
-const MODS        = ['FI','CO','PP','MM','IF','SD'];
+const DEFAULT_MODS = [
+  {key:'FI',color:'#5B21B6'},{key:'CO',color:'#0369A1'},{key:'PP',color:'#92400E'},
+  {key:'MM',color:'#065F46'},{key:'IF',color:'#881337'},{key:'SD',color:'#312E81'}
+];
 const ACCENT      = { 'PENDING APPROVAL':'#B45309','APPROVED':'#0F766E','IN PROGRESS':'#1D6FA4','COMPLETED':'#2D8653','REJECTED':'#C41230' };
-const MOD_COLOR   = { FI:'#5B21B6', CO:'#0369A1', PP:'#92400E', MM:'#065F46', IF:'#881337', SD:'#312E81' };
 const STATUS_ICON = { 'PENDING APPROVAL':'◷','APPROVED':'✓','IN PROGRESS':'↻','COMPLETED':'★','REJECTED':'✕' };
 const TINT_CLS    = { 'PENDING APPROVAL':'card-tint-pa','APPROVED':'card-tint-ap','IN PROGRESS':'card-tint-ip','COMPLETED':'card-tint-co','REJECTED':'card-tint-na' };
 
@@ -847,9 +878,11 @@ const AZURE_SAS_URL = 'https://kanbanstoragesst.blob.core.windows.net/kanban-dat
     const t = document.getElementById('app-title');
     if (t) {
       t.textContent = appMode === 'edit'
-        ? 'Change Request Kanban Board (Edit)'
-        : 'Change Request Kanban Board (Display)';
+        ? 'CR Kanban Board (Edit)'
+        : 'CR Kanban Board (Display)';
     }
+    const cog = document.getElementById('btn-settings');
+    if (cog) cog.style.display = appMode === 'edit' ? 'inline-flex' : 'none';
   }
 
   function openChgPwdModal() {
@@ -974,7 +1007,137 @@ function normalizeStatus(raw) {
       || STATUS_ORD.find(s => u.split(' ').some(w => s.includes(w)))
       || 'PENDING APPROVAL';
 }
-function modCls(mod) { return `mod-${MODS.includes(mod) ? mod : 'X'}`; }
+// ─── SETTINGS HELPERS ──────────────────────────────────────────────────────
+const LS_MODS    = 'kanban_mods_v1';
+const LS_PROJ    = 'kanban_project_name';
+const DEFAULT_PROJ = 'SST GT · SEKISUI × ABeam Consulting';
+
+function getMods() {
+  try { const s=localStorage.getItem(LS_MODS); if(s) return JSON.parse(s); } catch(e){}
+  return DEFAULT_MODS.map(m=>({...m}));
+}
+function getProjectName() {
+  return localStorage.getItem(LS_PROJ) || DEFAULT_PROJ;
+}
+function sanitizeKey(s) {
+  return s.replace(/[^A-Za-z0-9]/g,'').toUpperCase().slice(0,8);
+}
+function injectModuleCSS() {
+  const mods = getMods();
+  let css = '';
+  mods.forEach(m => {
+    if (!m.key) return;
+    const k = sanitizeKey(m.key);
+    css += `.mod-${k}{background:${m.color}!important;}`;
+  });
+  css += `.mod-X{background:#9CA3AF!important;}`;
+  let tag = document.getElementById('mod-css');
+  if (!tag) { tag = document.createElement('style'); tag.id='mod-css'; document.head.appendChild(tag); }
+  tag.textContent = css;
+}
+function renderModuleChips() {
+  const mods = getMods();
+  const container = document.getElementById('mod-chips-container');
+  if (!container) return;
+  container.innerHTML = '';
+  mods.forEach(m => {
+    if (!m.key) return;
+    const k = sanitizeKey(m.key);
+    const btn = document.createElement('button');
+    btn.className = `mod-chip mod-${k}`;
+    btn.id = `fchip-${k}`;
+    btn.textContent = k;
+    btn.onclick = () => setFilter(k);
+    container.appendChild(btn);
+  });
+}
+function applyProjectName() {
+  const name = getProjectName();
+  const ls = document.getElementById('landing-subtitle');
+  if (ls) ls.textContent = name;
+  const us = document.getElementById('upload-subtitle');
+  if (us) us.textContent = name;
+}
+
+// ─── SETTINGS MODAL ────────────────────────────────────────────────────────
+function openSettings() {
+  const mods = getMods();
+  document.getElementById('set-project-name').value = getProjectName();
+  renderSettingsModuleList(mods);
+  document.getElementById('set-err').style.display = 'none';
+  const modal = document.getElementById('settings-modal');
+  modal.style.display = 'flex';
+}
+function closeSettings() {
+  document.getElementById('settings-modal').style.display = 'none';
+}
+function renderSettingsModuleList(mods) {
+  const list = document.getElementById('set-mod-list');
+  list.innerHTML = '';
+  mods.forEach((m, i) => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;';
+    row.dataset.idx = i;
+    const colorIn = document.createElement('input');
+    colorIn.type = 'color'; colorIn.value = m.color || '#555555';
+    colorIn.className = 'set-mod-color';
+    colorIn.style.cssText = 'width:32px;height:28px;border:1px solid #E2E8F0;border-radius:5px;padding:1px;cursor:pointer;flex-shrink:0;';
+    const keyIn = document.createElement('input');
+    keyIn.type = 'text'; keyIn.value = m.key || '';
+    keyIn.className = 'set-mod-key';
+    keyIn.maxLength = 8;
+    keyIn.placeholder = 'KEY (e.g. FI)';
+    keyIn.style.cssText = 'flex:1;border:1.5px solid #E2E8F0;border-radius:6px;padding:6px 9px;font-family:inherit;font-size:12px;font-weight:700;text-transform:uppercase;outline:none;';
+    keyIn.addEventListener('input', () => { keyIn.value = keyIn.value.toUpperCase().replace(/[^A-Z0-9]/g,''); });
+    const del = document.createElement('button');
+    del.textContent = '✕'; del.title = 'Remove module';
+    del.style.cssText = 'background:none;border:1px solid #FCA5A5;border-radius:5px;color:#DC2626;cursor:pointer;font-size:11px;padding:3px 7px;flex-shrink:0;';
+    del.onclick = () => { row.remove(); };
+    row.appendChild(colorIn); row.appendChild(keyIn); row.appendChild(del);
+    list.appendChild(row);
+  });
+}
+function addSettingsMod() {
+  renderSettingsModuleList([...readSettingsModRows(), {key:'',color:'#6366F1'}]);
+}
+function readSettingsModRows() {
+  const rows = [];
+  document.querySelectorAll('#set-mod-list > div').forEach(row => {
+    const key = row.querySelector('.set-mod-key').value.trim();
+    const color = row.querySelector('.set-mod-color').value;
+    rows.push({ key, color });
+  });
+  return rows;
+}
+function saveSettings() {
+  const projName = document.getElementById('set-project-name').value.trim();
+  const mods = readSettingsModRows();
+  const err = document.getElementById('set-err');
+  // Validate: at least 1 module, all keys non-empty and unique
+  const keys = mods.map(m => sanitizeKey(m.key)).filter(k => k);
+  if (mods.length === 0) { err.style.display='block'; err.textContent='Add at least one module.'; return; }
+  if (keys.length !== mods.length) { err.style.display='block'; err.textContent='All module keys must be non-empty.'; return; }
+  const uniq = new Set(keys);
+  if (uniq.size !== keys.length) { err.style.display='block'; err.textContent='Module keys must be unique.'; return; }
+  // Save
+  const cleanMods = mods.map(m => ({ key: sanitizeKey(m.key), color: m.color }));
+  localStorage.setItem(LS_MODS, JSON.stringify(cleanMods));
+  if (projName) localStorage.setItem(LS_PROJ, projName);
+  else localStorage.removeItem(LS_PROJ);
+  // Apply
+  injectModuleCSS();
+  renderModuleChips();
+  applyProjectName();
+  if (typeof render === 'function') render();
+  closeSettings();
+}
+// ─── END SETTINGS ──────────────────────────────────────────────────────────
+
+function modCls(mod) {
+  const mods = getMods();
+  const keys = mods.map(m => sanitizeKey(m.key));
+  return `mod-${keys.includes(mod) ? mod : 'X'}`;
+}
 
 function monthToPhase(mon) {
   return PHASE_MAP[tr(mon).toUpperCase()] || null;
@@ -986,19 +1149,57 @@ function parseExcel(ab) {
   state.prev.length = 0;
   const seen = new Set();
   const sh1 = wb.Sheets['Active CRs'] || wb.Sheets[wb.SheetNames[0]];
-  XLSX.utils.sheet_to_json(sh1, { header:1, defval:'' }).forEach(r => {
-    const cr = tr(r[0]);
+  // Read with header:1 first to find column names, then use name-based lookup
+  const allRows = XLSX.utils.sheet_to_json(sh1, { header:1, defval:'' });
+  // First row with 'CR' or 'CR ID' etc is the header row
+  let headerIdx = 0;
+  for (let i = 0; i < Math.min(5, allRows.length); i++) {
+    if (allRows[i].some(c => /^cr[\s-]?id?$/i.test(String(c).trim()) || /^cr$/i.test(String(c).trim()))) {
+      headerIdx = i; break;
+    }
+  }
+  const hdr = allRows[headerIdx].map(c => String(c).trim().toLowerCase());
+  // Column name → field mapping (flexible, case-insensitive)
+  function col(row, ...names) {
+    for (const n of names) {
+      const idx = hdr.findIndex(h => h === n.toLowerCase() || h.replace(/[\s\-_]/g,'') === n.toLowerCase().replace(/[\s\-_]/g,''));
+      if (idx >= 0) return tr(row[idx]);
+    }
+    return '';
+  }
+  allRows.slice(headerIdx + 1).forEach(r => {
+    const cr = col(r, 'cr', 'cr id', 'crid', 'cr-id');
     if (!cr.startsWith('CR-') || seen.has(cr)) return;
     seen.add(cr);
-    const rawSt = tr(r[2]).toUpperCase();
-    const base = { cr, desc:tr(r[1]), mod:tr(r[3]).toUpperCase(), md:tr(r[4]), mon:tr(r[5]).toUpperCase(), creator:tr(r[6]), pic:tr(r[7]), url:tr(r[8]), note:tr(r[9]),
-      issue:tr(r[10]), ref:tr(r[11]),
-      dsP:tr(r[12]),dsA:tr(r[13]),devP:tr(r[14]),devA:tr(r[15]),utP:tr(r[16]),utA:tr(r[17]),uatP:tr(r[18]),uatA:tr(r[19]),goP:tr(r[20]),goA:tr(r[21]),
-      log:[] };
+    const rawSt = col(r, 'status').toUpperCase();
+    const base = {
+      cr,
+      desc:    col(r, 'description', 'desc', 'cr description'),
+      mod:     col(r, 'module', 'mod').toUpperCase(),
+      md:      col(r, 'md', 'man days', 'mandays', 'man-days'),
+      mon:     col(r, 'month', 'mon', 'go live month').toUpperCase(),
+      creator: col(r, 'creator', 'requested by', 'requestor'),
+      pic:     col(r, 'pic', 'person in charge', 'abeam pic'),
+      url:     col(r, 'url', 'link', 'reference url'),
+      note:    col(r, 'note', 'notes', 'remark', 'remarks'),
+      issue:   col(r, 'issue', 'issues', 'open issue'),
+      ref:     col(r, 'ref', 'reference', 'ref cr', 'related cr'),
+      dsP:     col(r, 'ds plan', 'ds planned', 'ds p', 'dsp'),
+      dsA:     col(r, 'ds actual', 'ds a', 'dsa'),
+      devP:    col(r, 'dev plan', 'dev planned', 'dev p', 'devp'),
+      devA:    col(r, 'dev actual', 'dev a', 'deva'),
+      utP:     col(r, 'ut plan', 'ut planned', 'ut p', 'utp'),
+      utA:     col(r, 'ut actual', 'ut a', 'uta'),
+      uatP:    col(r, 'uat plan', 'uat planned', 'uat p', 'uatp'),
+      uatA:    col(r, 'uat actual', 'uat a', 'uata'),
+      goP:     col(r, 'go plan', 'go-live plan', 'go p', 'gop', 'go live plan'),
+      goA:     col(r, 'go actual', 'go-live actual', 'go a', 'goa', 'go live actual'),
+      log:[]
+    };
     if (rawSt === 'PREV COMPLETED' || rawSt === 'PREVIOUSLY COMPLETED') {
       state.prev.push(base);
     } else {
-      state.active.push({ ...base, status:normalizeStatus(r[2]), _collapsed:false });
+      state.active.push({ ...base, status:normalizeStatus(rawSt), _collapsed:false });
     }
   });
   // Read CR Timeline sheet and populate card.log arrays
@@ -1154,7 +1355,7 @@ function refreshBaselineUI() {
   }
 }
 
-function render() { renderMainCols(); renderNA(); renderPrev(); updateStats(); applyFilter(); refreshBaselineUI(); }
+function render() { renderModuleChips(); renderMainCols(); renderNA(); renderPrev(); updateStats(); applyFilter(); refreshBaselineUI(); }
 function showDownloadBtn() { /* download always visible, no-op */ }
 
 function sortedForCol(cards, status) {
@@ -1478,7 +1679,7 @@ function makeModBadge(card) {
   badge.addEventListener('click', e => {
     e.stopPropagation();
     const sel = el('select','bdg-sel');
-    MODS.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;if(m===card.mod)o.selected=true;sel.appendChild(o);});
+    getMods().forEach(({key:m})=>{const k=sanitizeKey(m);const o=document.createElement('option');o.value=k;o.textContent=k;if(k===card.mod)o.selected=true;sel.appendChild(o);});
     function save(){ if(sel.value!==card.mod)markDirty(); card.mod=sel.value; badge.className=`badge click ${modCls(card.mod)}`; badge.textContent=card.mod; sel.replaceWith(badge); }
     sel.addEventListener('change',save); sel.addEventListener('blur',save);
     badge.replaceWith(sel); sel.focus();
@@ -1514,7 +1715,7 @@ function makeAddCardForm(status, wrap, btn) {
 
   const row = el('div', 'acf-row');
   const modSel = el('select', 'acf-input'); modSel.style.flex='1';
-  MODS.forEach(m => { const o=document.createElement('option'); o.value=m; o.textContent=m; modSel.appendChild(o); });
+  getMods().forEach(({key:m}) => { const k=sanitizeKey(m); const o=document.createElement('option'); o.value=k; o.textContent=k; modSel.appendChild(o); });
   const mdIn  = el('input', 'acf-input'); mdIn.type='text'; mdIn.placeholder='MD'; mdIn.style.cssText='flex:0 0 52px;';
   const monIn = el('input', 'acf-input'); monIn.type='text'; monIn.placeholder='Month'; monIn.style.cssText='flex:0 0 62px;';
   row.appendChild(modSel); row.appendChild(mdIn); row.appendChild(monIn);
@@ -1839,9 +2040,10 @@ function switchView(view) {
 
 function getModuleData() {
   const r = {};
-  MODS.forEach(m => { r[m] = { count:0, totalMD:0 }; });
+  const modKeys = getMods().map(m => sanitizeKey(m.key));
+  modKeys.forEach(m => { r[m] = { count:0, totalMD:0 }; });
   state.active.forEach(c => {
-    const m = MODS.includes(c.mod) ? c.mod : null;
+    const m = modKeys.includes(c.mod) ? c.mod : null;
     if (!m) return;
     r[m].count++;
     const n = parseFloat(c.md);
@@ -1972,9 +2174,10 @@ function renderThresholdChart() {
 
 function renderModuleChart() {
   const data   = getModuleData();
-  const labels = MODS.filter(m => data[m].count > 0 || data[m].totalMD > 0);
+  const modColorMap = Object.fromEntries(getMods().map(m=>([sanitizeKey(m.key), m.color])));
+  const labels = getMods().map(m=>sanitizeKey(m.key)).filter(m => data[m] && (data[m].count > 0 || data[m].totalMD > 0));
   const mdVals = labels.map(m => data[m].totalMD);
-  const bgCols = labels.map(m => MOD_COLOR[m] || '#808080');
+  const bgCols = labels.map(m => modColorMap[m] || '#808080');
   const cntVals= labels.map(m => data[m].count);
 
   const ctx = document.getElementById('md-chart');
@@ -2026,7 +2229,8 @@ function renderModuleChart() {
 
 function renderModuleTable() {
   const data   = getModuleData();
-  const labels = MODS.filter(m => data[m].count > 0 || data[m].totalMD > 0);
+  const modColorMap2 = Object.fromEntries(getMods().map(m=>([sanitizeKey(m.key), m.color])));
+  const labels = getMods().map(m=>sanitizeKey(m.key)).filter(m => data[m] && (data[m].count > 0 || data[m].totalMD > 0));
   const grandMD= labels.reduce((s,m)=>s+data[m].totalMD, 0);
   const tbody  = document.getElementById('analysis-tbody');
   if (tbody) {
@@ -2034,7 +2238,7 @@ function renderModuleTable() {
       const avg  = data[m].count>0&&data[m].totalMD>0 ? (data[m].totalMD/data[m].count).toFixed(1) : '—';
       const share= grandMD>0&&data[m].totalMD>0 ? Math.round(data[m].totalMD/grandMD*100)+'%' : '—';
       return `<tr>
-        <td><span class="an-badge" style="background:${MOD_COLOR[m]||'#808080'}">${m}</span></td>
+        <td><span class="an-badge" style="background:${modColorMap2[m]||'#808080'}">${m}</span></td>
         <td>${data[m].count}</td>
         <td>${data[m].totalMD||'—'}</td>
         <td>${avg}</td>
@@ -2125,7 +2329,7 @@ function openDetail(cr) {
   };
   syncPhaseSection(); // set initial state when modal opens
   const ms = document.getElementById('detail-mod');
-  ms.innerHTML = MODS.map(m => `<option value="${m}"${m===card.mod?' selected':''}>${m}</option>`).join('');
+  ms.innerHTML = getMods().map(({key:m}) => { const k=sanitizeKey(m); return `<option value="${k}"${k===card.mod?' selected':''}>${k}</option>`; }).join('');
   document.getElementById('detail-md').value = card.md;
   document.getElementById('detail-mon').value = card.mon;
   document.getElementById('detail-creator').value = card.creator || '';
@@ -2659,7 +2863,7 @@ function buildStyledSheet(headers, rows, hdrStyle, subHdrStyle) {
     fill:      { fgColor:{ rgb:'1F3864' } },
     alignment: { horizontal:'center', vertical:'center' }
   };
-  ws[enc({r:0,c:0})] = { v:'Change Request Kanban — SST GT Implementation (SEKISUI × ABeam)', t:'s', s:titleStyle };
+  ws[enc({r:0,c:0})] = { v:'Change Request Kanban — ' + getProjectName(), t:'s', s:titleStyle };
   for (let c=1; c<C; c++) {
     ws[enc({r:0,c})] = { v:'', t:'s', s:titleStyle };
   }
@@ -2760,7 +2964,7 @@ function renderReport() {
 
   // Title
   t += `<tr>
-    <td colspan="6" style="background:#1B2B52;color:white;padding:10px 14px;font-size:14pt;font-weight:bold;">SST GT — Change Request Status</td>
+    <td colspan="6" style="background:#1B2B52;color:white;padding:10px 14px;font-size:14pt;font-weight:bold;">${getProjectName()} — Change Request Status</td>
     <td style="background:#1B2B52;color:#aac4e0;padding:10px 14px;text-align:right;font-size:9.5pt;vertical-align:bottom;">${today}</td></tr>`;
 
   // Summary bar
@@ -2842,6 +3046,15 @@ async function copyReportTable() {
     }
   }
 }
+
+// ─── STARTUP: apply settings on page load ────────────────────────────────
+(function initSettings() {
+  injectModuleCSS();
+  applyProjectName();
+  // Module chips are rendered when app-screen is shown (renderModuleChips called from render)
+  // But also render chips immediately so landing page filter works if chips are visible
+  if (document.getElementById('mod-chips-container')) renderModuleChips();
+})();
 
 </script>
 </body>
