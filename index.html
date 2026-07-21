@@ -121,7 +121,7 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:#F0F4FA;color:#1F2937;
 }
 .card-applied{animation:cardApply 1s cubic-bezier(.2,.8,.3,1) forwards;}
 .col-md-sum{font-size:9.5px;font-weight:700;color:rgba(255,255,255,.65);background:rgba(0,0,0,.18);border-radius:10px;padding:2px 7px;white-space:nowrap;margin-right:2px;}
-.card{background:white;border-radius:8px;display:flex;flex-direction:column;border:1px solid #e4e6ea;box-shadow:0 1px 4px rgba(0,0,0,.06);transition:box-shadow .18s,opacity .15s,transform .18s;cursor:grab;position:relative;}
+.card{background:white;border-radius:8px;display:flex;flex-direction:column;border:1px solid #e4e6ea;box-shadow:0 1px 4px rgba(0,0,0,.06);transition:box-shadow .18s,opacity .15s,transform .18s;cursor:default;position:relative;}
 .card:hover{box-shadow:0 6px 18px rgba(0,0,0,.11);transform:translateY(-2px);}
 .card.dragging{opacity:.35;transform:scale(.97);cursor:grabbing;transition:none;}
 .card.just-dropped{animation:cardLand .55s cubic-bezier(.2,.8,.3,1) forwards;}
@@ -168,7 +168,7 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:#F0F4FA;color:#1F2937;
 .bdg-in{border:none;background:transparent;font-size:11px;font-family:inherit;outline:none;padding:0 1px;color:#333;min-width:0;}
 .bdg-save{background:var(--blue);color:white;border:none;border-radius:3px;font-size:10px;cursor:pointer;padding:1px 5px;font-family:inherit;}
 .bdg-sel{font-size:11px;font-family:inherit;border:1px solid var(--blue);border-radius:4px;padding:1px 2px;outline:none;cursor:pointer;background:white;}
-.prev-card{cursor:grab;}
+.prev-card{cursor:default;}
 .prev-card:hover{box-shadow:0 6px 18px rgba(0,0,0,.11)!important;transform:translateY(-2px)!important;}
 .prev-rep{font-size:10px;color:var(--teal);font-weight:700;margin-bottom:2px;}
 #toast-el{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(14px);background:#1e293b;color:white;padding:9px 18px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .25s,transform .25s;z-index:9999;white-space:nowrap;pointer-events:none;border-left:3px solid transparent;}
@@ -277,7 +277,7 @@ body.view-mode .today-btn{display:none;}
 .card-link:hover{color:var(--blue)!important;background:rgba(29,111,164,.1);}
 .card-creator{font-size:9.5px;color:var(--g7F);padding:0 8px 1px;opacity:.8;display:flex;gap:0;flex-wrap:wrap;align-items:center;}
 .card-pic{font-size:9.5px;color:var(--navy);font-weight:700;padding-left:8px;border-left:1px solid #D1D9E6;margin-left:4px;}
-.card-hdr-txt{cursor:pointer;}
+.card-hdr-txt{cursor:default;}
 .card-hdr-txt:hover .card-desc{color:var(--blue);}
 
 .phase-track{display:flex;align-items:center;gap:1px;flex:1;justify-content:center;padding:0 3px;overflow:hidden;min-width:0;}
@@ -1331,29 +1331,33 @@ function makePhaseTrack(card) {
 
 function makeCard(card) {
   const wrap = el('div', `card ${TINT_CLS[card.status]||''}`);
-  wrap.draggable = false; // enabled only while mousedown on grip
+  wrap.draggable = (appMode === 'edit'); // browsers suppress 'click' after a real drag, so this is safe
   wrap.dataset.cr = card.cr;
   if (card._collapsed) wrap.classList.add('collapsed');
   const _mdn = parseFloat(card.md); if (!isNaN(_mdn) && _mdn >= 10) wrap.classList.add('card-high-md');
   if (card.cr === lastDropped) wrap.classList.add('just-dropped');
 
   wrap.addEventListener('dragstart', e => {
-    if (appMode !== 'edit' || !wrap.draggable) { e.preventDefault(); return; }
+    if (appMode !== 'edit') { e.preventDefault(); return; }
     e.dataTransfer.setData('text/plain', card.cr);
     e.dataTransfer.effectAllowed = 'move';
     setTimeout(() => wrap.classList.add('dragging'), 0);
   });
-  wrap.addEventListener('dragend', () => { wrap.classList.remove('dragging'); wrap.draggable = false; });
+  wrap.addEventListener('dragend', () => wrap.classList.remove('dragging'));
   wrap.addEventListener('contextmenu', e => {
     if (appMode !== 'edit') return;
     e.preventDefault();
     showCardContextMenu(e.clientX, e.clientY, card.cr, card.status);
   });
+  // Click anywhere on the card (not on an interactive control) → drill-down.
+  // Browsers guarantee 'click' does NOT fire when a drag-and-drop occurred,
+  // so short click = open detail, drag = move — no timer needed.
+  wrap.addEventListener('click', e => {
+    if (e.target.closest('button,.card-tog,.badge,.bdg-edit,.bdg-sel,[contenteditable="true"],.note-pencil')) return;
+    openDetail(card.cr);
+  });
 
   const grip = el('div','card-grip'); grip.innerHTML = '⠿'; grip.setAttribute('aria-hidden','true');
-  // Enable drag only when user mouses down on the grip handle
-  grip.addEventListener('mousedown', () => { if (appMode === 'edit') wrap.draggable = true; });
-  document.addEventListener('mouseup', () => { wrap.draggable = false; }, { capture: true });
   wrap.appendChild(grip);
 
   const bar = el('div','card-top-bar'); bar.style.background = ACCENT[card.status];
@@ -1388,8 +1392,7 @@ function makeCard(card) {
     if (card.pic)     { const pEl=el('span','card-pic'); pEl.textContent='◆ '+card.pic; peopleRow.appendChild(pEl); }
     hdrTxt.appendChild(peopleRow);
   }
-  // Click header text → open detail modal
-  hdrTxt.addEventListener('click', e => { e.stopPropagation(); openDetail(card.cr); });
+  // (detail opened by card-level click handler above)
 
   // Link button
   const linkBtn = el('button', 'card-link' + (card.url ? ' has-url' : ''));
