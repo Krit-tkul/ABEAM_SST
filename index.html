@@ -140,8 +140,9 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:#F0F4FA;color:#1F2937;
 .card-issue-tag{display:inline-block;background:#F0FAF8;border:1px solid #6EE7B7;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:600;color:#0F766E;line-height:1.6;}
 .card-ref-text{font-size:10px;color:var(--g7F);font-weight:500;white-space:nowrap;overflow:hidden;max-width:110px;text-overflow:ellipsis;}
 .card-desc{font-size:11px;font-weight:600;color:var(--navy);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-.card-grip{position:absolute;left:6px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--div);opacity:0;transition:opacity .15s;pointer-events:none;line-height:1;}
-.card:hover .card-grip{opacity:.6;}
+.card-grip{position:absolute;left:5px;top:50%;transform:translateY(-50%);font-size:12px;color:#CBD5E1;opacity:.35;transition:opacity .15s,color .15s;cursor:grab;line-height:1;}
+.card:hover .card-grip{opacity:.75;color:#94A3B8;}
+.card-grip:active{cursor:grabbing;color:var(--blue);opacity:1;}
 .card-tog{flex-shrink:0;width:16px;height:16px;border-radius:3px;background:rgba(0,0,0,.04);border:1px solid var(--div);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:8px;color:var(--g7F);transition:background .15s,transform .22s;user-select:none;margin-top:1px;}
 .card-tog:hover{background:#ddeaf9;color:var(--blue);}
 .card.collapsed .card-tog{transform:rotate(-90deg);}
@@ -233,7 +234,8 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:#F0F4FA;color:#1F2937;
 body.view-mode .add-card-btn,body.view-mode .add-card-form,
 body.view-mode .card-del,body.view-mode .btn-h.teal,
 body.view-mode #btn-new-cr,body.view-mode #btn-upload-new,
-body.view-mode #btn-save-baseline,body.view-mode #btn-mark-all{display:none!important;}
+body.view-mode #btn-save-baseline,body.view-mode #btn-mark-all,
+body.view-mode #btn-load-new{display:none!important;}
 body.view-mode .card{cursor:default!important;}
 body.view-mode .card-hdr-txt{cursor:default!important;pointer-events:none;}
 body.view-mode .card-note{pointer-events:none;}
@@ -466,7 +468,7 @@ body.view-mode .today-btn{display:none;}
       <span id="save-status" class="save-status"></span>
       <button id="btn-download" class="btn-h teal" onclick="downloadExcel()" title="Download backup Excel file">💾 Download Excel</button>
       <button class="btn-h" onclick="showModeScreen()" title="Return to mode selection">⇄ Switch Mode</button>
-      <button class="btn-h red" onclick="resetApp()" title="Emergency: load a different Excel file">↩ Load New File</button>
+      <button id="btn-load-new" class="btn-h red" onclick="resetApp()" title="Emergency: load a different Excel file">↩ Load New File</button>
     </div>
   </div>
 
@@ -1329,19 +1331,19 @@ function makePhaseTrack(card) {
 
 function makeCard(card) {
   const wrap = el('div', `card ${TINT_CLS[card.status]||''}`);
-  wrap.draggable = true;
+  wrap.draggable = false; // enabled only while mousedown on grip
   wrap.dataset.cr = card.cr;
   if (card._collapsed) wrap.classList.add('collapsed');
   const _mdn = parseFloat(card.md); if (!isNaN(_mdn) && _mdn >= 10) wrap.classList.add('card-high-md');
   if (card.cr === lastDropped) wrap.classList.add('just-dropped');
 
   wrap.addEventListener('dragstart', e => {
-    if (appMode !== 'edit') { e.preventDefault(); return; }
+    if (appMode !== 'edit' || !wrap.draggable) { e.preventDefault(); return; }
     e.dataTransfer.setData('text/plain', card.cr);
     e.dataTransfer.effectAllowed = 'move';
     setTimeout(() => wrap.classList.add('dragging'), 0);
   });
-  wrap.addEventListener('dragend', () => wrap.classList.remove('dragging'));
+  wrap.addEventListener('dragend', () => { wrap.classList.remove('dragging'); wrap.draggable = false; });
   wrap.addEventListener('contextmenu', e => {
     if (appMode !== 'edit') return;
     e.preventDefault();
@@ -1349,6 +1351,9 @@ function makeCard(card) {
   });
 
   const grip = el('div','card-grip'); grip.innerHTML = '⠿'; grip.setAttribute('aria-hidden','true');
+  // Enable drag only when user mouses down on the grip handle
+  grip.addEventListener('mousedown', () => { if (appMode === 'edit') wrap.draggable = true; });
+  document.addEventListener('mouseup', () => { wrap.draggable = false; }, { capture: true });
   wrap.appendChild(grip);
 
   const bar = el('div','card-top-bar'); bar.style.background = ACCENT[card.status];
