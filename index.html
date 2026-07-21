@@ -232,7 +232,8 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:#F0F4FA;color:#1F2937;
 /* ── View Mode ─────────────────────────────── */
 body.view-mode .add-card-btn,body.view-mode .add-card-form,
 body.view-mode .card-del,body.view-mode .btn-h.teal,
-body.view-mode #btn-new-cr,body.view-mode #btn-upload-new{display:none!important;}
+body.view-mode #btn-new-cr,body.view-mode #btn-upload-new,
+body.view-mode #btn-save-baseline,body.view-mode #btn-mark-all{display:none!important;}
 body.view-mode .card{cursor:default!important;}
 body.view-mode .card-hdr-txt{cursor:default!important;pointer-events:none;}
 body.view-mode .card-note{pointer-events:none;}
@@ -363,14 +364,6 @@ body.view-mode .today-btn{display:none;}
 .ctx-item.ctx-current{background:#F0F9FF;font-weight:700;cursor:default;}
 .ctx-sep{height:1px;background:var(--div);margin:3px 0;}
 .ctx-header{font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.6px;padding:5px 14px 2px;}
-/* ── Compact density mode ──────────────────────────────────────────── */
-body.compact-mode .card{margin-bottom:4px!important;}
-body.compact-mode .card-detail{display:none!important;}
-body.compact-mode .card-hdr{padding:5px 8px 4px!important;}
-body.compact-mode .card-top-bar{height:3px!important;}
-body.compact-mode .card-creator{padding:0 8px 4px!important;}
-body.compact-mode .card-desc{-webkit-line-clamp:1!important;}
-#btn-compact.compact-on{background:#DBEAFE;border-color:var(--blue);color:var(--blue);}
 /* ── Today button in phase table ────────────────────────────────────── */
 .today-btn{font-size:9.5px;font-weight:700;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:4px;color:var(--blue);cursor:pointer;padding:1px 5px;margin-left:4px;white-space:nowrap;vertical-align:middle;transition:.1s;line-height:1.4;}
 .today-btn:hover{background:var(--blue);color:white;}
@@ -506,8 +499,6 @@ body.compact-mode .card-desc{-webkit-line-clamp:1!important;}
     <button class="btn-t" id="btn-save-baseline" onclick="saveBaseline()" title="Snapshot current board into Excel _Baseline sheet — download Excel to share with team">&#x1F4CC; Save Baseline</button>
     <button class="btn-t" id="btn-mark-all" onclick="markAllDiscussed()" title="Clear all update flags and update baseline in Excel" style="display:none">&#x2713; Mark All Discussed</button>
     <button class="btn-t" id="btn-filter-upd" onclick="toggleUpdatedFilter()" title="Show only CRs that changed since baseline" style="display:none">&#x26A1; Updated Only</button>
-    <div class="t-sep"></div>
-    <button class="btn-t" id="btn-compact" onclick="toggleCompact()" title="Toggle compact card view">⊡ Compact</button>
   </div>
 
   <!-- Stats Bar (Kanban only) -->
@@ -794,7 +785,8 @@ const AZURE_SAS_URL = 'https://kanbanstoragesst.blob.core.windows.net/kanban-dat
     document.body.classList.add('view-mode');
     _updateModeBadge();
     if (state.active.length > 0) {
-      document.getElementById('app-screen').style.display = '';
+      document.getElementById('upload-screen').style.display = 'none';
+      document.getElementById('app-screen').style.display = 'block';
       render();
     } else {
       loadFromAzure();
@@ -829,7 +821,8 @@ const AZURE_SAS_URL = 'https://kanbanstoragesst.blob.core.windows.net/kanban-dat
       document.body.classList.remove('view-mode');
       _updateModeBadge();
       if (state.active.length > 0) {
-        document.getElementById('app-screen').style.display = '';
+        document.getElementById('upload-screen').style.display = 'none';
+        document.getElementById('app-screen').style.display = 'block';
         render();
       } else {
         loadFromAzure();
@@ -1683,13 +1676,6 @@ function setStatusFilter(status) {
     if (el) el.classList.add('s-active');
   }
   applyFilter();
-}
-
-/* ── Compact density toggle ──────────────────────────────────── */
-function toggleCompact() {
-  document.body.classList.toggle('compact-mode');
-  const btn = document.getElementById('btn-compact');
-  if (btn) btn.classList.toggle('compact-on', document.body.classList.contains('compact-mode'));
 }
 
 /* ── Set Today for phase Actual dates ───────────────────────── */
