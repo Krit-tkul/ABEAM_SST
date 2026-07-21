@@ -113,6 +113,13 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:#F0F4FA;color:#1F2937;
   55% {box-shadow:0 0 0 1.5px rgba(29,111,164,.25),0 6px 14px rgba(0,0,0,.1);transform:translateY(-1px) scale(1.005);}
   100%{box-shadow:0 1px 4px rgba(0,0,0,.06);transform:none;}
 }
+@keyframes cardApply{
+  0%  {box-shadow:0 0 0 3px #1D6FA4,0 6px 20px rgba(29,111,164,.35);}
+  60% {box-shadow:0 0 0 2px rgba(29,111,164,.3),0 4px 12px rgba(0,0,0,.1);}
+  100%{box-shadow:0 1px 4px rgba(0,0,0,.06);}
+}
+.card-applied{animation:cardApply 1s cubic-bezier(.2,.8,.3,1) forwards;}
+.col-md-sum{font-size:9.5px;font-weight:700;color:rgba(255,255,255,.65);background:rgba(0,0,0,.18);border-radius:10px;padding:2px 7px;white-space:nowrap;margin-right:2px;}
 .card{background:white;border-radius:8px;display:flex;flex-direction:column;border:1px solid #e4e6ea;box-shadow:0 1px 4px rgba(0,0,0,.06);transition:box-shadow .18s,opacity .15s,transform .18s;cursor:grab;position:relative;}
 .card:hover{box-shadow:0 6px 18px rgba(0,0,0,.11);transform:translateY(-2px);}
 .card.dragging{opacity:.35;transform:scale(.97);cursor:grabbing;transition:none;}
@@ -658,14 +665,14 @@ body.view-mode .detail-open-btn{pointer-events:none;opacity:.5;}
 </div>
 
 
-<div id="detail-modal" class="detail-overlay" style="display:none" onclick="if(event.target===this)closeDetail()">
+<div id="detail-modal" class="detail-overlay" style="display:none" onmousedown="_ovlMd=event.target" onclick="if(event.target===this&&_ovlMd===this)closeDetail()">
   <div class="detail-box">
     <div class="detail-sbar" id="detail-sbar"></div>
     <div class="detail-head">
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;flex-wrap:wrap;">
-          <div style="display:inline-flex;align-items:center;border:1px solid var(--div);border-radius:5px;overflow:hidden;">
-            <span style="padding:4px 7px;background:var(--bg);font-size:10px;font-weight:700;color:var(--navy);border-right:1px solid var(--div);flex-shrink:0;">CR-</span>
+          <div style="display:inline-flex;align-items:center;border:1px solid var(--div);border-radius:5px;overflow:hidden;" title="Click CR- prefix to copy number" >
+            <span style="padding:4px 7px;background:var(--bg);font-size:10px;font-weight:700;color:var(--navy);border-right:1px solid var(--div);flex-shrink:0;cursor:copy;" title="Copy CR number" onclick="const v='CR-'+(document.getElementById('detail-cr-num').value.trim()||'?');navigator.clipboard.writeText(v).then(()=>toast('📋 '+v+' copied','#4B5563'));">CR-</span>
             <input id="detail-cr-num" class="detail-cr-tag detail-cr-edit" type="text" inputmode="numeric" placeholder="104" spellcheck="false" style="width:52px;border:none;border-radius:0;padding:4px 6px;box-sizing:border-box;">
           </div>
           <div style="display:inline-flex;align-items:center;border:1px solid var(--div);border-radius:5px;overflow:hidden;">
@@ -735,7 +742,7 @@ body.view-mode .detail-open-btn{pointer-events:none;opacity:.5;}
         <div class="phase-section-lbl">📅 Progress Timeline</div>
         <div class="tl-input-row">
           <input type="date" id="tl-date" title="Entry date">
-          <textarea id="tl-comment" placeholder="Enter progress update or milestone note…" rows="2"></textarea>
+          <textarea id="tl-comment" placeholder="Enter progress update or milestone note… (Ctrl+Enter to add)" rows="2" onkeydown="if(event.key==='Enter'&&(event.ctrlKey||event.metaKey)){event.preventDefault();addTimelineEntry();}"></textarea>
           <button class="tl-add-btn" onclick="addTimelineEntry()">+ Add</button>
         </div>
         <div id="tl-list" class="tl-list"></div>
@@ -1194,11 +1201,15 @@ function makeActiveColumn(status) {
   left.appendChild(icon);
   left.appendChild(document.createTextNode(status));
   const cnt = el('span', 'col-cnt'); cnt.id = `cnt-${key}`; cnt.textContent = cards.length;
+  const totalMD = cards.reduce((s, c) => { const n = parseFloat(c.md); return s + (isNaN(n) ? 0 : n); }, 0);
+  const mdBadge = el('span', 'col-md-sum'); mdBadge.id = `md-${key}`;
+  mdBadge.textContent = totalMD > 0 ? `${totalMD} MD` : '';
+  mdBadge.title = `Total man-days in this column: ${totalMD}`;
   const sortBtn = el('button', 'col-sort-btn' + (colSort[status] ? ' sort-on' : ''));
   sortBtn.textContent = colSort[status] ? colSort[status] : '⇅';
   sortBtn.title = colSort[status] ? 'Sorted by ' + colSort[status] + ' — click to cycle' : 'Sort column (CR# → MD↓ → MD↑)';
   sortBtn.addEventListener('click', e => cycleColSort(status, e));
-  hdr.appendChild(left); hdr.appendChild(cnt); hdr.appendChild(sortBtn);
+  hdr.appendChild(left); hdr.appendChild(mdBadge); hdr.appendChild(cnt); hdr.appendChild(sortBtn);
   col.appendChild(hdr);
 
   const body = el('div', 'col-body');
@@ -1974,6 +1985,7 @@ let _searchQ      = '';
 let _detailIsPrev = false;
 let _detailLog    = [];
 let colSort       = {};
+let _ovlMd        = null; // tracks mousedown target to prevent text-selection from closing modal
 
 function renderTimelineEntries() {
   const list = document.getElementById('tl-list');
@@ -2160,7 +2172,19 @@ function applyDetail() {
       if (idx !== -1) state.prev.splice(idx, 1);
       state.active.push({ ...card, status: newStatus, _collapsed: false });
     }
+    const _appliedCr = newCr;
     markDirty(); render();
+    // Scroll to + flash the edited card so user can spot it
+    setTimeout(() => {
+      const el = document.querySelector(`.card[data-cr="${CSS.escape(_appliedCr)}"]`);
+      if (el) {
+        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        el.classList.add('card-applied');
+        setTimeout(() => el.classList.remove('card-applied'), 1100);
+      }
+    }, 40);
+  } else {
+    toast('No changes made', '#6B7280');
   }
   _detailCr = null; _detailIsPrev = false; // card.cr already updated above
   document.getElementById('detail-modal').style.display = 'none';
