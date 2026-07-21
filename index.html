@@ -349,6 +349,10 @@ body.view-mode .today-btn{display:none;}
 .stat-item.s-clickable { cursor:pointer; border-radius:6px; padding:3px 7px; margin:-3px -7px; transition:background .12s; }
 .stat-item.s-clickable:hover { background:#EFF6FF; }
 .stat-item.s-clickable.s-active { background:#DBEAFE; outline:2px solid #93C5FD; outline-offset:1px; }
+.stats-toggle-btn{background:none;border:1px solid #DDE3EA;border-radius:4px;cursor:pointer;font-size:10px;color:#6B7280;padding:1px 5px;line-height:1.4;transition:.15s;flex-shrink:0;}
+.stats-toggle-btn:hover{background:#EFF6FF;border-color:#93C5FD;color:var(--blue);}
+#stats-detail{overflow:hidden;transition:opacity .15s;}
+#stats-detail.collapsed{display:none!important;}
 /* ── Disabled modal btn (Prev/Next nav) ────────────────────────────── */
 .modal-btn:disabled { opacity:.38; cursor:default; }
 .modal-btn.cancel:disabled:hover { background:var(--bg)!important; border-color:var(--div)!important; color:var(--g59)!important; }
@@ -506,14 +510,16 @@ body.view-mode .today-btn{display:none;}
   <!-- Stats Bar (Kanban only) -->
   <div id="stats-bar">
     <div class="stat-item"><span class="stat-dot" style="background:#555"></span><span>Total Active</span><span class="stat-num" id="stat-total">–</span></div>
-    <div class="stat-sep"></div>
-    <div class="stat-item s-clickable" id="sitem-PA" onclick="setStatusFilter('PENDING APPROVAL')" title="Click to filter board"><span class="stat-dot" style="background:var(--amber)"></span><span>Pending Approval</span><span class="stat-num" id="stat-PA">–</span></div>
-    <div class="stat-item s-clickable" id="sitem-AP" onclick="setStatusFilter('APPROVED')" title="Click to filter board"><span class="stat-dot" style="background:#0F766E"></span><span>Approved</span><span class="stat-num" id="stat-AP">–</span></div>
-    <div class="stat-item s-clickable" id="sitem-IP" onclick="setStatusFilter('IN PROGRESS')" title="Click to filter board"><span class="stat-dot" style="background:var(--blue)"></span><span>In Progress</span><span class="stat-num" id="stat-IP">–</span></div>
-    <div class="stat-item s-clickable" id="sitem-CO" onclick="setStatusFilter('COMPLETED')" title="Click to filter board"><span class="stat-dot" style="background:var(--green)"></span><span>Completed (incl. Prev)</span><span class="stat-num" id="stat-CO">–</span></div>
-    <div class="stat-sep"></div>
-    <div class="stat-item s-clickable" id="sitem-NA" onclick="setStatusFilter('REJECTED')" title="Click to filter board"><span class="stat-dot" style="background:var(--red)"></span><span>Rejected</span><span class="stat-num" id="stat-NA">–</span></div>
-      <div class="stat-sep" id="baseline-sep" style="display:none"></div>
+    <button id="stats-toggle" class="stats-toggle-btn" onclick="toggleStatsBar()" title="Show / hide status breakdown">▾</button>
+    <div id="stats-detail" style="display:flex;align-items:center;gap:10px;">
+      <div class="stat-sep"></div>
+      <div class="stat-item s-clickable" id="sitem-PA" onclick="setStatusFilter('PENDING APPROVAL')" title="Click to filter board"><span class="stat-dot" style="background:var(--amber)"></span><span>Pending Approval</span><span class="stat-num" id="stat-PA">–</span></div>
+      <div class="stat-item s-clickable" id="sitem-AP" onclick="setStatusFilter('APPROVED')" title="Click to filter board"><span class="stat-dot" style="background:#0F766E"></span><span>Approved</span><span class="stat-num" id="stat-AP">–</span></div>
+      <div class="stat-item s-clickable" id="sitem-IP" onclick="setStatusFilter('IN PROGRESS')" title="Click to filter board"><span class="stat-dot" style="background:var(--blue)"></span><span>In Progress</span><span class="stat-num" id="stat-IP">–</span></div>
+      <div class="stat-item s-clickable" id="sitem-CO" onclick="setStatusFilter('COMPLETED')" title="Click to filter board"><span class="stat-dot" style="background:var(--green)"></span><span>Completed (incl. Prev)</span><span class="stat-num" id="stat-CO">–</span></div>
+      <div class="stat-item s-clickable" id="sitem-NA" onclick="setStatusFilter('REJECTED')" title="Click to filter board"><span class="stat-dot" style="background:var(--red)"></span><span>Rejected</span><span class="stat-num" id="stat-NA">–</span></div>
+    </div>
+    <div class="stat-sep" id="baseline-sep" style="display:none"></div>
     <div class="baseline-info" id="baseline-info" style="display:none">&#x1F4CC; Baseline: <span class="binfo-date" id="baseline-date">–</span>&ensp;&middot;&ensp;<span id="baseline-upd-count">–</span></div>
   </div>
 
@@ -1684,6 +1690,15 @@ function setStatusFilter(status) {
     if (el) el.classList.add('s-active');
   }
   applyFilter();
+}
+
+/* ── Stats bar expand / collapse ────────────────────────────── */
+function toggleStatsBar() {
+  const detail = document.getElementById('stats-detail');
+  const btn    = document.getElementById('stats-toggle');
+  if (!detail) return;
+  const collapsed = detail.classList.toggle('collapsed');
+  if (btn) btn.textContent = collapsed ? '▸' : '▾';
 }
 
 /* ── Set Today for phase Actual dates ───────────────────────── */
