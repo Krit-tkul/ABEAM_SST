@@ -239,6 +239,7 @@ body.view-mode .bdg-edit{pointer-events:none;opacity:.5;}
 body.view-mode .badge.click{pointer-events:none;cursor:default;}
 body.view-mode .detail-in,body.view-mode .detail-se,body.view-mode .detail-ta{pointer-events:none;background:#f7f7f7;}
 body.view-mode .detail-open-btn{pointer-events:none;opacity:.5;}
+body.view-mode .today-btn{display:none;}
 .mode-badge{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;border:1px solid rgba(255,255,255,.25);}
 .mode-badge.mb-view{color:#fcd34d;border-color:rgba(252,211,77,.4);}
 .mode-badge.mb-edit{color:#6ee7b7;border-color:rgba(110,231,183,.4);}
@@ -405,9 +406,36 @@ body.view-mode .detail-open-btn{pointer-events:none;opacity:.5;}
 /* ── Download button dim state ─────────────────────────────────────── */
 #btn-download.btn-clean { opacity:0.45; }
 #btn-download.btn-clean:hover { opacity:0.65; }
+/* ── Card context menu ─────────────────────────────────────────────── */
+#card-ctx-menu{position:fixed;z-index:9999;background:white;border:1px solid #d1d5db;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.14);min-width:190px;padding:4px 0;font-family:inherit;display:none;}
+#card-ctx-menu.open{display:block;}
+.ctx-item{display:flex;align-items:center;gap:8px;padding:7px 14px;font-size:12px;font-weight:500;color:var(--navy);cursor:pointer;transition:background .1s;}
+.ctx-item:hover{background:#EFF6FF;color:var(--blue);}
+.ctx-item .ctx-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.ctx-item.ctx-current{background:#F0F9FF;font-weight:700;cursor:default;}
+.ctx-sep{height:1px;background:var(--div);margin:3px 0;}
+.ctx-header{font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.6px;padding:5px 14px 2px;}
+/* ── Compact density mode ──────────────────────────────────────────── */
+body.compact-mode .card{margin-bottom:4px!important;}
+body.compact-mode .card-detail{display:none!important;}
+body.compact-mode .card-hdr{padding:5px 8px 4px!important;}
+body.compact-mode .card-top-bar{height:3px!important;}
+body.compact-mode .card-creator{padding:0 8px 4px!important;}
+body.compact-mode .card-desc{-webkit-line-clamp:1!important;}
+#btn-compact.compact-on{background:#DBEAFE;border-color:var(--blue);color:var(--blue);}
+/* ── Today button in phase table ────────────────────────────────────── */
+.today-btn{font-size:9.5px;font-weight:700;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:4px;color:var(--blue);cursor:pointer;padding:1px 5px;margin-left:4px;white-space:nowrap;vertical-align:middle;transition:.1s;line-height:1.4;}
+.today-btn:hover{background:var(--blue);color:white;}
+.phase-table td:last-child{white-space:nowrap;}
 </style>
 </head>
 <body>
+
+<!-- Card right-click context menu -->
+<div id="card-ctx-menu" role="menu">
+  <div class="ctx-header">Move to Status</div>
+  <div id="ctx-items"></div>
+</div>
 
 <!-- UPLOAD -->
 <!-- ── MODE SELECTION SCREEN ─────────────────────────────────── -->
@@ -529,6 +557,8 @@ body.view-mode .detail-open-btn{pointer-events:none;opacity:.5;}
     <button class="btn-t" id="btn-save-baseline" onclick="saveBaseline()" title="Snapshot current board into Excel _Baseline sheet — download Excel to share with team">&#x1F4CC; Save Baseline</button>
     <button class="btn-t" id="btn-mark-all" onclick="markAllDiscussed()" title="Clear all update flags and update baseline in Excel" style="display:none">&#x2713; Mark All Discussed</button>
     <button class="btn-t" id="btn-filter-upd" onclick="toggleUpdatedFilter()" title="Show only CRs that changed since baseline" style="display:none">&#x26A1; Updated Only</button>
+    <div class="t-sep"></div>
+    <button class="btn-t" id="btn-compact" onclick="toggleCompact()" title="Toggle compact card view">⊡ Compact</button>
   </div>
 
   <!-- Stats Bar (Kanban only) -->
@@ -726,11 +756,11 @@ body.view-mode .detail-open-btn{pointer-events:none;opacity:.5;}
         <table class="phase-table">
           <thead><tr><th>Phase</th><th>Planned</th><th>Actual</th></tr></thead>
           <tbody>
-            <tr><td>DS</td><td><input type="date" id="dp-dsP"></td><td><input type="date" id="dp-dsA"></td></tr>
-            <tr><td>DEV</td><td><input type="date" id="dp-devP"></td><td><input type="date" id="dp-devA"></td></tr>
-            <tr><td>UT</td><td><input type="date" id="dp-utP"></td><td><input type="date" id="dp-utA"></td></tr>
-            <tr><td>UAT</td><td><input type="date" id="dp-uatP"></td><td><input type="date" id="dp-uatA"></td></tr>
-            <tr><td>GO</td><td><input type="date" id="dp-goP"></td><td><input type="date" id="dp-goA"></td></tr>
+            <tr><td>DS</td><td><input type="date" id="dp-dsP"></td><td><input type="date" id="dp-dsA"><button class="today-btn" onclick="setToday('dp-dsA')" title="Set today's date">Today</button></td></tr>
+            <tr><td>DEV</td><td><input type="date" id="dp-devP"></td><td><input type="date" id="dp-devA"><button class="today-btn" onclick="setToday('dp-devA')" title="Set today's date">Today</button></td></tr>
+            <tr><td>UT</td><td><input type="date" id="dp-utP"></td><td><input type="date" id="dp-utA"><button class="today-btn" onclick="setToday('dp-utA')" title="Set today's date">Today</button></td></tr>
+            <tr><td>UAT</td><td><input type="date" id="dp-uatP"></td><td><input type="date" id="dp-uatA"><button class="today-btn" onclick="setToday('dp-uatA')" title="Set today's date">Today</button></td></tr>
+            <tr><td>GO</td><td><input type="date" id="dp-goP"></td><td><input type="date" id="dp-goA"><button class="today-btn" onclick="setToday('dp-goA')" title="Set today's date">Today</button></td></tr>
           </tbody>
         </table>
       </div>
@@ -1366,6 +1396,11 @@ function makeCard(card) {
     setTimeout(() => wrap.classList.add('dragging'), 0);
   });
   wrap.addEventListener('dragend', () => wrap.classList.remove('dragging'));
+  wrap.addEventListener('contextmenu', e => {
+    if (appMode !== 'edit') return;
+    e.preventDefault();
+    showCardContextMenu(e.clientX, e.clientY, card.cr, card.status);
+  });
 
   const grip = el('div','card-grip'); grip.innerHTML = '⠿'; grip.setAttribute('aria-hidden','true');
   wrap.appendChild(grip);
@@ -1696,6 +1731,74 @@ function setStatusFilter(status) {
   }
   applyFilter();
 }
+
+/* ── Compact density toggle ──────────────────────────────────── */
+function toggleCompact() {
+  document.body.classList.toggle('compact-mode');
+  const btn = document.getElementById('btn-compact');
+  if (btn) btn.classList.toggle('compact-on', document.body.classList.contains('compact-mode'));
+}
+
+/* ── Set Today for phase Actual dates ───────────────────────── */
+function setToday(inputId) {
+  const inp = document.getElementById(inputId);
+  if (!inp) return;
+  inp.value = new Date().toISOString().slice(0, 10);
+  inp.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+/* ── Card right-click context menu ─────────────────────────── */
+const _ctxMenu = document.getElementById('card-ctx-menu');
+let _ctxCr = null;
+
+function showCardContextMenu(x, y, cr, currentStatus) {
+  _ctxCr = cr;
+  const items = document.getElementById('ctx-items');
+  items.innerHTML = '';
+  STATUS_ORD.forEach(s => {
+    const isCurrent = s === currentStatus;
+    const div = document.createElement('div');
+    div.className = 'ctx-item' + (isCurrent ? ' ctx-current' : '');
+    div.setAttribute('role', 'menuitem');
+    const dot = document.createElement('span');
+    dot.className = 'ctx-dot';
+    dot.style.background = ACCENT[s] || '#888';
+    const lbl = document.createElement('span');
+    lbl.textContent = isCurrent ? s + ' ✓' : s;
+    div.appendChild(dot); div.appendChild(lbl);
+    if (!isCurrent) {
+      div.addEventListener('click', () => {
+        const card = data.find(c => c.cr === _ctxCr);
+        if (card) { card.status = s; markDirty(); render();
+          setTimeout(() => {
+            const el = document.querySelector(`.card[data-cr="${CSS.escape(_ctxCr)}"]`);
+            if (el) { el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+              el.classList.add('card-applied');
+              setTimeout(() => el.classList.remove('card-applied'), 1100); }
+          }, 40);
+          toast('Moved to ' + s, ACCENT[s] || '#4B5563');
+        }
+        hideCardContextMenu();
+      });
+    }
+    items.appendChild(div);
+  });
+  // Position menu — keep it inside viewport
+  _ctxMenu.classList.add('open');
+  const mw = _ctxMenu.offsetWidth || 200, mh = _ctxMenu.offsetHeight || 220;
+  const vw = window.innerWidth, vh = window.innerHeight;
+  _ctxMenu.style.left = (x + mw > vw ? vw - mw - 8 : x) + 'px';
+  _ctxMenu.style.top  = (y + mh > vh ? y - mh : y) + 'px';
+}
+
+function hideCardContextMenu() {
+  _ctxMenu.classList.remove('open');
+  _ctxCr = null;
+}
+
+// Dismiss on click outside or Escape
+document.addEventListener('click', e => { if (!_ctxMenu.contains(e.target)) hideCardContextMenu(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') hideCardContextMenu(); });
 
 function applyFilter() {
   const filtered = activeFilter !== 'ALL';
