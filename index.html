@@ -1119,17 +1119,46 @@ function saveSettings() {
   if (keys.length !== mods.length) { err.style.display='block'; err.textContent='All module keys must be non-empty.'; return; }
   const uniq = new Set(keys);
   if (uniq.size !== keys.length) { err.style.display='block'; err.textContent='Module keys must be unique.'; return; }
-  // Save
+
+  // Detect renames: compare old vs new by position, build old→new key map
+  const oldMods = getMods();
   const cleanMods = mods.map(m => ({ key: sanitizeKey(m.key), color: m.color }));
+  const renameMap = {};
+  oldMods.forEach((old, i) => {
+    if (cleanMods[i] && old.key && cleanMods[i].key && old.key !== cleanMods[i].key) {
+      renameMap[old.key] = cleanMods[i].key;
+    }
+  });
+
+  // Remap cards if any renames detected
+  let remapped = 0;
+  if (Object.keys(renameMap).length > 0) {
+    [...(state.active || []), ...(state.prev || [])].forEach(card => {
+      if (renameMap[card.mod]) {
+        card.mod = renameMap[card.mod];
+        remapped++;
+      }
+    });
+    if (remapped > 0) markDirty();
+  }
+
+  // Save
   localStorage.setItem(LS_MODS, JSON.stringify(cleanMods));
   if (projName) localStorage.setItem(LS_PROJ, projName);
   else localStorage.removeItem(LS_PROJ);
+
   // Apply
   injectModuleCSS();
   renderModuleChips();
   applyProjectName();
   if (typeof render === 'function') render();
   closeSettings();
+
+  // Notify user about remapped cards
+  if (remapped > 0) {
+    const pairs = Object.entries(renameMap).map(([o,n])=>`${o}→${n}`).join(', ');
+    toast(`✓ Re-tagged ${remapped} card${remapped>1?'s':''} (${pairs})`, '#0F766E');
+  }
 }
 // ─── END SETTINGS ──────────────────────────────────────────────────────────
 
